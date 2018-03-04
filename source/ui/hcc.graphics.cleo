@@ -4,6 +4,8 @@
 (def initialize (import-c-fn libname "initialize" :cdecl :int64 []))
 (def shutdown (import-c-fn libname "shutdown" :cdecl :int64 []))
 (def clear (import-c-fn libname "clear" :cdecl :int64 []))
+(def render (import-c-fn libname "render" :cdecl :int64 []))
+(def arc (import-c-fn libname "arc" :cdecl :int64 [:int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64]))
 (def swap-buffers (import-c-fn libname "swap_buffers" :cdecl :int64 []))
 (def get-display-width (import-c-fn libname "get_display_width" :cdecl :int64 []))
 (def get-display-height (import-c-fn libname "get_display_height" :cdecl :int64 []))
