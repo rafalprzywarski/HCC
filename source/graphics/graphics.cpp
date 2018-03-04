@@ -4,8 +4,8 @@
 #include <GLES2/gl2.h>
 #include <string>
 #include <vector>
-#include <algorithm>
 #include <memory>
+#include <array>
 
 namespace
 {
@@ -83,7 +83,7 @@ struct State
     GLuint fragment_shader{};
     GLuint program{};
 
-    GLfloat projection[16]{};
+    std::array<GLfloat, 16> projection{};
 };
 
 State *state = nullptr;
@@ -92,13 +92,13 @@ void init_projection()
 {
     auto width = state->display_width;
     auto height = state->display_height;
-    GLfloat m[16] = {
+    std::array<GLfloat,  16> m = {{
         2.0f / width, 0,             0, 0,
         0,            2.0f / height, 0, 0,
         0,            0,             1, 0,
         -1,           -1,            0, 1
-    };
-    std::copy_n(m, 16, state->projection);
+    }};
+    state->projection = m;
 }
 
 void init_buffers()
@@ -226,22 +226,16 @@ std::int64_t arc(
 {
     if (!state)
         return 0;
-    state->arc_vertices.push_back(x0); state->arc_vertices.push_back(y0);
-    state->arc_vertices.push_back(x1); state->arc_vertices.push_back(y0);
-    state->arc_vertices.push_back(x1); state->arc_vertices.push_back(y1);
-    state->arc_vertices.push_back(x0); state->arc_vertices.push_back(y0);
-    state->arc_vertices.push_back(x1); state->arc_vertices.push_back(y1);
-    state->arc_vertices.push_back(x0); state->arc_vertices.push_back(y1);
+    std::array<GLfloat, 12> vertices{{
+        GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y0), GLfloat(x1), GLfloat(y1),
+        GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y1), GLfloat(x0), GLfloat(y1)}};
+    std::array<GLfloat, 4> color{{r / 255.0f, g / 255.0f, b / 255.0f, 1.0f}};
+    std::array<GLfloat, 4> circle{{GLfloat(cx), GLfloat(cy), GLfloat(cr), GLfloat(corient)}};
+    state->arc_vertices.insert(end(state->arc_vertices), begin(vertices), end(vertices));
     for (int i = 0; i < 6; ++i)
     {
-        state->arc_colors.push_back(r / 255.0f);
-        state->arc_colors.push_back(g / 255.0f);
-        state->arc_colors.push_back(b / 255.0f);
-        state->arc_colors.push_back(1);
-        state->arc_circles.push_back(cx);
-        state->arc_circles.push_back(cy);
-        state->arc_circles.push_back(cr);
-        state->arc_circles.push_back(corient);
+        state->arc_colors.insert(end(state->arc_colors), begin(color), end(color));
+        state->arc_circles.insert(end(state->arc_circles), begin(circle), end(circle));
     }
     return 0;
 }
@@ -255,7 +249,7 @@ std::int64_t render()
     set_buffer(state->circle_buffer, state->arc_circles);
 
     glUseProgram(state->program);
-    glUniformMatrix4fv(glGetUniformLocation(state->program, "u_Projection"), 1, false, state->projection);
+    glUniformMatrix4fv(glGetUniformLocation(state->program, "u_Projection"), 1, false, state->projection.data());
     set_vertex_attrib(state->program, "a_Position", 2, state->vertex_buffer);
     set_vertex_attrib(state->program, "a_Color", 4, state->color_buffer);
     set_vertex_attrib(state->program, "a_Circle", 4, state->circle_buffer);
