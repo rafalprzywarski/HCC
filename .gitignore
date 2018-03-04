@@ -1,0 +1,6 @@
+.*
+*~
+!.gitignore
+/Debug
+/Release
+/xcode

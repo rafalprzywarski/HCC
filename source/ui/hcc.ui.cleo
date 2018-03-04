@@ -1,0 +1,15 @@
+(ns hcc.ui)
+(require 'hcc.graphics)
+
+(def main
+  (fn* []
+       (do
+         (hcc.graphics/initialize)
+         (println "initialized display" (hcc.graphics/get-display-width) "x" (hcc.graphics/get-display-height))
+         (loop* [n 120]
+           (do
+             (hcc.graphics/clear)
+             (hcc.graphics/swap-buffers)
+             (if (= n 0) nil (recur (- n 1)))))
+         (hcc.graphics/shutdown)
+         (println "done"))))
