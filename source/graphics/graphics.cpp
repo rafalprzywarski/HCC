@@ -10,7 +10,7 @@
 namespace
 {
 
-std::string arc_vertex_shader_source =
+const std::string arc_vertex_shader_source =
 "#version 100\n"
 "uniform mat4 u_Projection;\n"
 "attribute vec4 a_Position;\n"
@@ -27,7 +27,7 @@ std::string arc_vertex_shader_source =
 "    gl_Position = u_Projection * a_Position;\n"
 "}\n";
 
-std::string arc_fragment_shader_source =
+const std::string arc_fragment_shader_source =
 "#version 100\n"
 "precision mediump float;\n"
 "varying vec4 v_Color;\n"
@@ -49,6 +49,32 @@ std::string arc_fragment_shader_source =
 "    gl_FragColor = vec4(v_Color.xyz, v_Color.w * alpha);\n"
 "}\n";
 
+const std::string textured_vertex_shader_source =
+"#version 100\n"
+"uniform mat4 u_Projection;\n"
+"attribute vec4 a_Position;\n"
+"attribute vec4 a_Color;\n"
+"attribute vec2 a_TexCoord;\n"
+"varying vec4 v_Color;\n"
+"varying vec2 v_TexCoord;\n"
+"void main()\n"
+"{\n"
+"    v_Color = a_Color;\n"
+"    v_TexCoord = a_TexCoord;\n"
+"    gl_Position = u_Projection * a_Position;\n"
+"}\n";
+
+const std::string textured_fragment_shader_source =
+"#version 100\n"
+"precision mediump float;\n"
+"uniform sampler2D u_Texture;\n"
+"varying vec4 v_Color;\n"
+"varying vec2 v_TexCoord;\n"
+"void main()\n"
+"{\n"
+"    gl_FragColor = texture2D(u_Texture, v_TexCoord) * v_Color;\n"
+"}\n";
+
 const EGLint DISPLAY_ATTRIBUTES[] =
 {
     EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
@@ -66,6 +92,20 @@ const EGLint CONTEXT_ATTRIBUTES[] =
     EGL_NONE
 };
 
+const std::array<std::uint8_t, 4 * 2 * 4> texture_example{{
+    255, 0, 0, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 0,
+    0,   0, 0, 255, 0,   255, 0, 255, 255, 255, 0,   255, 255, 255, 0,   0,
+}};
+
+struct TexturedDrawCall
+{
+    GLint offset{};
+    GLsizei size{};
+    GLuint texture{};
+    TexturedDrawCall() = default;
+    TexturedDrawCall(GLint offset, GLsizei size, GLuint texture) : offset(offset), size(size), texture(texture) { }
+};
+
 struct State
 {
     EGLDisplay display{};
@@ -75,13 +115,41 @@ struct State
     std::vector<GLfloat> arc_vertices;
     std::vector<GLfloat> arc_colors;
     std::vector<GLfloat> arc_circles;
-    GLuint vertex_buffer{};
-    GLuint color_buffer{};
-    GLuint circle_buffer{};
+    std::vector<GLfloat> textured_vertices{
+        100, 100,
+        200, 100,
+        200, 200,
+        100, 100,
+        200, 200,
+        100, 200};
+    std::vector<GLfloat> textured_colors{
+        0.5f, 0.75f, 0.25f, 0.75f,
+        0.5f, 0.75f, 0.25f, 0.75f,
+        0.5f, 0.75f, 0.25f, 0.75f,
+        0.5f, 0.75f, 0.25f, 0.75f,
+        0.5f, 0.75f, 0.25f, 0.75f,
+        0.5f, 0.75f, 0.25f, 0.75f};
+    std::vector<GLfloat> textured_coords{
+        0, 0,
+        5, 0,
+        5, 10,
+        0, 0,
+        5, 10,
+        0, 10};
+    GLuint arc_vertex_buffer{};
+    GLuint arc_color_buffer{};
+    GLuint arc_circle_buffer{};
+    GLuint textured_vertex_buffer{};
+    GLuint textured_color_buffer{};
+    GLuint textured_coord_buffer{};
+    std::vector<TexturedDrawCall> textured_draw_calls;
 
-    GLuint vertex_shader{};
-    GLuint fragment_shader{};
-    GLuint program{};
+    GLuint arc_vertex_shader{};
+    GLuint arc_fragment_shader{};
+    GLuint arc_program{};
+    GLuint textured_vertex_shader{};
+    GLuint textured_fragment_shader{};
+    GLuint textured_program{};
 
     std::array<GLfloat, 16> projection{};
 };
@@ -103,9 +171,12 @@ void init_projection()
 
 void init_buffers()
 {
-    glGenBuffers(1, &state->vertex_buffer);
-    glGenBuffers(1, &state->color_buffer);
-    glGenBuffers(1, &state->circle_buffer);
+    glGenBuffers(1, &state->arc_vertex_buffer);
+    glGenBuffers(1, &state->arc_color_buffer);
+    glGenBuffers(1, &state->arc_circle_buffer);
+    glGenBuffers(1, &state->textured_vertex_buffer);
+    glGenBuffers(1, &state->textured_color_buffer);
+    glGenBuffers(1, &state->textured_coord_buffer);
 }
 
 GLuint create_shader(GLenum type, const std::string& source)
@@ -128,9 +199,13 @@ GLuint create_program(GLuint vs, GLuint fs)
 
 void init_shaders()
 {
-    state->vertex_shader = create_shader(GL_VERTEX_SHADER, arc_vertex_shader_source);
-    state->fragment_shader = create_shader(GL_FRAGMENT_SHADER, arc_fragment_shader_source);
-    state->program = create_program(state->vertex_shader, state->fragment_shader);
+    state->arc_vertex_shader = create_shader(GL_VERTEX_SHADER, arc_vertex_shader_source);
+    state->arc_fragment_shader = create_shader(GL_FRAGMENT_SHADER, arc_fragment_shader_source);
+    state->arc_program = create_program(state->arc_vertex_shader, state->arc_fragment_shader);
+
+    state->textured_vertex_shader = create_shader(GL_VERTEX_SHADER, textured_vertex_shader_source);
+    state->textured_fragment_shader = create_shader(GL_FRAGMENT_SHADER, textured_fragment_shader_source);
+    state->textured_program = create_program(state->textured_vertex_shader, state->textured_fragment_shader);
 }
 
 void set_vertex_attrib(GLuint program, const char *name, int size, GLuint buffer)
@@ -145,6 +220,20 @@ void set_buffer(GLuint buffer, const std::vector<GLfloat>& data)
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(data[0]) * data.size(), data.data(), GL_DYNAMIC_DRAW);
+}
+
+GLuint create_texture(GLsizei width, GLsizei height, const void *data)
+{
+    GLuint texture{};
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    return texture;
 }
 
 }
@@ -193,6 +282,9 @@ std::int64_t initialize()
 
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_DST_ALPHA);
+
+    auto texture = create_texture(4, 2, texture_example.data());
+    ::state->textured_draw_calls.emplace_back(0, 6, texture);
 
     return 0;
 }
@@ -244,20 +336,36 @@ std::int64_t render()
 {
     if (!state)
         return 0;
-    set_buffer(state->vertex_buffer, state->arc_vertices);
-    set_buffer(state->color_buffer, state->arc_colors);
-    set_buffer(state->circle_buffer, state->arc_circles);
+    set_buffer(state->arc_vertex_buffer, state->arc_vertices);
+    set_buffer(state->arc_color_buffer, state->arc_colors);
+    set_buffer(state->arc_circle_buffer, state->arc_circles);
 
-    glUseProgram(state->program);
-    glUniformMatrix4fv(glGetUniformLocation(state->program, "u_Projection"), 1, false, state->projection.data());
-    set_vertex_attrib(state->program, "a_Position", 2, state->vertex_buffer);
-    set_vertex_attrib(state->program, "a_Color", 4, state->color_buffer);
-    set_vertex_attrib(state->program, "a_Circle", 4, state->circle_buffer);
+    glUseProgram(state->arc_program);
+    glUniformMatrix4fv(glGetUniformLocation(state->arc_program, "u_Projection"), 1, false, state->projection.data());
+    set_vertex_attrib(state->arc_program, "a_Position", 2, state->arc_vertex_buffer);
+    set_vertex_attrib(state->arc_program, "a_Color", 4, state->arc_color_buffer);
+    set_vertex_attrib(state->arc_program, "a_Circle", 4, state->arc_circle_buffer);
 
     glDrawArrays(GL_TRIANGLES, 0, state->arc_vertices.size() / 2);
     state->arc_vertices.clear();
     state->arc_colors.clear();
     state->arc_circles.clear();
+
+    set_buffer(state->textured_vertex_buffer, state->textured_vertices);
+    set_buffer(state->textured_color_buffer, state->textured_colors);
+    set_buffer(state->textured_coord_buffer, state->textured_coords);
+
+    glUseProgram(state->textured_program);
+    glUniformMatrix4fv(glGetUniformLocation(state->textured_program, "u_Projection"), 1, false, state->projection.data());
+    set_vertex_attrib(state->textured_program, "a_Position", 2, state->textured_vertex_buffer);
+    set_vertex_attrib(state->textured_program, "a_Color", 4, state->textured_color_buffer);
+    set_vertex_attrib(state->textured_program, "a_TexCoord", 2, state->textured_coord_buffer);
+
+    for (auto& dc : state->textured_draw_calls)
+    {
+        glUniform1i(glGetUniformLocation(state->arc_program, "u_Texture"), dc.texture);
+        glDrawArrays(GL_TRIANGLES, dc.offset, dc.size);
+    }
 
     return 0;
 }
