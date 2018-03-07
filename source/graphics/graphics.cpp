@@ -6,9 +6,26 @@
 #include <vector>
 #include <memory>
 #include <array>
+#include <iostream>
 
 namespace
 {
+#define HCC_GRAPHICS_TO_LINEAR \
+"vec3 toLinear(vec3 color)\n" \
+"{\n" \
+"    return mix(\n" \
+"        color / vec3(12.92),\n" \
+"        pow((color + vec3(0.055)) / vec3(1.055), vec3(2.4)),\n" \
+"        vec3(greaterThan(color, vec3(0.04045))));\n" \
+"}\n"
+#define HCC_GRAPHICS_TO_SRGB \
+"vec3 tosRGB(vec3 color)\n" \
+"{\n" \
+"    return mix(\n" \
+"        color * vec3(12.92),\n" \
+"        vec3(1.055) * pow(color, vec3(1.0 / 2.4)) - vec3(0.055),\n" \
+"        vec3(greaterThan(color, vec3(0.0031308))));\n" \
+"}\n"
 
 const std::string arc_vertex_shader_source =
 "#version 100\n"
@@ -19,9 +36,10 @@ const std::string arc_vertex_shader_source =
 "varying vec4 v_Color;\n"
 "varying vec2 v_Position;\n"
 "varying vec4 v_Circle;\n"
+HCC_GRAPHICS_TO_LINEAR
 "void main()\n"
 "{\n"
-"    v_Color = a_Color;\n"
+"    v_Color = vec4(toLinear(a_Color.rgb), a_Color.a);\n"
 "    v_Position = a_Position.xy;\n"
 "    v_Circle = a_Circle;\n"
 "    gl_Position = u_Projection * a_Position;\n"
@@ -33,6 +51,7 @@ const std::string arc_fragment_shader_source =
 "varying vec4 v_Color;\n"
 "varying vec2 v_Position;\n"
 "varying vec4 v_Circle;\n"
+HCC_GRAPHICS_TO_SRGB
 "float smoothStep(float edge0, float edge1, float x)\n"
 "{\n"
 "    float t = clamp((x - edge0) / (edge1  - edge0), 0.0, 1.0);\n"
@@ -45,34 +64,43 @@ const std::string arc_fragment_shader_source =
 "}\n"
 "void main()\n"
 "{\n"
-"    float alpha = sqrt(smoothSample());\n"
-"    gl_FragColor = vec4(v_Color.xyz, v_Color.w * alpha);\n"
+"    float alpha = smoothSample();\n"
+"    if (alpha == 0.0)\n"
+"        discard;\n"
+"    gl_FragColor = vec4(tosRGB(v_Color.rgb * alpha), 1);\n"
 "}\n";
 
-const std::string textured_vertex_shader_source =
+const std::string font_vertex_shader_source =
 "#version 100\n"
 "uniform mat4 u_Projection;\n"
 "attribute vec4 a_Position;\n"
+"attribute vec3 a_BackgroundColor;\n"
 "attribute vec4 a_Color;\n"
 "attribute vec2 a_TexCoord;\n"
+"varying vec3 v_BackgroundColor;\n"
 "varying vec4 v_Color;\n"
 "varying vec2 v_TexCoord;\n"
+HCC_GRAPHICS_TO_LINEAR
 "void main()\n"
 "{\n"
-"    v_Color = a_Color;\n"
+"    v_BackgroundColor = toLinear(a_BackgroundColor);\n"
+"    v_Color = vec4(toLinear(a_Color.rgb), a_Color.a);\n"
 "    v_TexCoord = a_TexCoord;\n"
 "    gl_Position = u_Projection * a_Position;\n"
 "}\n";
 
-const std::string textured_fragment_shader_source =
+const std::string font_fragment_shader_source =
 "#version 100\n"
 "precision mediump float;\n"
 "uniform sampler2D u_Texture;\n"
+"varying vec3 v_BackgroundColor;\n"
 "varying vec4 v_Color;\n"
 "varying vec2 v_TexCoord;\n"
+HCC_GRAPHICS_TO_SRGB
 "void main()\n"
 "{\n"
-"    gl_FragColor = texture2D(u_Texture, v_TexCoord) * v_Color;\n"
+"    float alpha = texture2D(u_Texture, v_TexCoord).a;"
+"    gl_FragColor = vec4(tosRGB(mix(v_BackgroundColor, v_Color.rgb, v_Color.a * alpha)), 1);\n"
 "}\n";
 
 const EGLint DISPLAY_ATTRIBUTES[] =
@@ -92,9 +120,11 @@ const EGLint CONTEXT_ATTRIBUTES[] =
     EGL_NONE
 };
 
-const std::array<std::uint8_t, 4 * 2 * 4> texture_example{{
-    255, 0, 0, 255, 255, 255, 0, 255, 255, 255, 255, 255, 255, 255, 255, 0,
-    0,   0, 0, 255, 0,   255, 0, 255, 255, 255, 0,   255, 255, 255, 0,   0,
+const std::array<std::uint8_t, 4 * 4> texture_example{{
+    255, 204, 162, 127,
+    204, 162, 127, 84,
+    162, 127, 84,  42,
+    127, 84,  42,  0,
 }};
 
 struct TexturedDrawCall
@@ -115,41 +145,49 @@ struct State
     std::vector<GLfloat> arc_vertices;
     std::vector<GLfloat> arc_colors;
     std::vector<GLfloat> arc_circles;
-    std::vector<GLfloat> textured_vertices{
+    std::vector<GLfloat> font_vertices{
         100, 100,
         200, 100,
         200, 200,
         100, 100,
         200, 200,
         100, 200};
-    std::vector<GLfloat> textured_colors{
+    std::vector<GLfloat> font_background_colors{
+        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
+        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
+        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
+        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
+        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
+        197 / 255.0f, 26 / 255.0f, 74 / 255.0f};
+    std::vector<GLfloat> font_colors{
         0.5f, 0.75f, 0.25f, 0.75f,
         0.5f, 0.75f, 0.25f, 0.75f,
         0.5f, 0.75f, 0.25f, 0.75f,
         0.5f, 0.75f, 0.25f, 0.75f,
         0.5f, 0.75f, 0.25f, 0.75f,
         0.5f, 0.75f, 0.25f, 0.75f};
-    std::vector<GLfloat> textured_coords{
+    std::vector<GLfloat> font_coords{
         0, 0,
         5, 0,
-        5, 10,
+        5, 5,
         0, 0,
-        5, 10,
-        0, 10};
+        5, 5,
+        0, 5};
     GLuint arc_vertex_buffer{};
     GLuint arc_color_buffer{};
     GLuint arc_circle_buffer{};
-    GLuint textured_vertex_buffer{};
-    GLuint textured_color_buffer{};
-    GLuint textured_coord_buffer{};
-    std::vector<TexturedDrawCall> textured_draw_calls;
+    GLuint font_vertex_buffer{};
+    GLuint font_background_color_buffer{};
+    GLuint font_color_buffer{};
+    GLuint font_coord_buffer{};
+    std::vector<TexturedDrawCall> font_draw_calls;
 
     GLuint arc_vertex_shader{};
     GLuint arc_fragment_shader{};
     GLuint arc_program{};
-    GLuint textured_vertex_shader{};
-    GLuint textured_fragment_shader{};
-    GLuint textured_program{};
+    GLuint font_vertex_shader{};
+    GLuint font_fragment_shader{};
+    GLuint font_program{};
 
     std::array<GLfloat, 16> projection{};
 };
@@ -174,9 +212,10 @@ void init_buffers()
     glGenBuffers(1, &state->arc_vertex_buffer);
     glGenBuffers(1, &state->arc_color_buffer);
     glGenBuffers(1, &state->arc_circle_buffer);
-    glGenBuffers(1, &state->textured_vertex_buffer);
-    glGenBuffers(1, &state->textured_color_buffer);
-    glGenBuffers(1, &state->textured_coord_buffer);
+    glGenBuffers(1, &state->font_vertex_buffer);
+    glGenBuffers(1, &state->font_background_color_buffer);
+    glGenBuffers(1, &state->font_color_buffer);
+    glGenBuffers(1, &state->font_coord_buffer);
 }
 
 GLuint create_shader(GLenum type, const std::string& source)
@@ -185,6 +224,17 @@ GLuint create_shader(GLenum type, const std::string& source)
     auto source_ = source.c_str();
     glShaderSource(id, 1, &source_, nullptr);
     glCompileShader(id);
+    GLint status;
+    glGetShaderiv(id, GL_COMPILE_STATUS, &status);
+	if (status == GL_FALSE)
+	{
+        GLint log_length{};
+        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &log_length);
+		std::vector<GLchar> log(log_length);
+		glGetShaderInfoLog(id, log_length, nullptr, log.data());
+		std::cerr << "Shader " << type << " compilation error: " << log.data() << std::endl;
+        std::abort();
+	}
     return id;
 }
 
@@ -194,6 +244,17 @@ GLuint create_program(GLuint vs, GLuint fs)
     glAttachShader(program, vs);
     glAttachShader(program, fs);
     glLinkProgram(program);
+    GLint status;
+    glGetProgramiv(program, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE)
+	{
+        GLint log_length{};
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
+		std::vector<GLchar> log(log_length);
+		glGetProgramInfoLog(program, log_length, nullptr, log.data());
+		std::cerr << "Program link error: " << log.data() << std::endl;
+        std::abort();
+	}
     return program;
 }
 
@@ -203,9 +264,9 @@ void init_shaders()
     state->arc_fragment_shader = create_shader(GL_FRAGMENT_SHADER, arc_fragment_shader_source);
     state->arc_program = create_program(state->arc_vertex_shader, state->arc_fragment_shader);
 
-    state->textured_vertex_shader = create_shader(GL_VERTEX_SHADER, textured_vertex_shader_source);
-    state->textured_fragment_shader = create_shader(GL_FRAGMENT_SHADER, textured_fragment_shader_source);
-    state->textured_program = create_program(state->textured_vertex_shader, state->textured_fragment_shader);
+    state->font_vertex_shader = create_shader(GL_VERTEX_SHADER, font_vertex_shader_source);
+    state->font_fragment_shader = create_shader(GL_FRAGMENT_SHADER, font_fragment_shader_source);
+    state->font_program = create_program(state->font_vertex_shader, state->font_fragment_shader);
 }
 
 void set_vertex_attrib(GLuint program, const char *name, int size, GLuint buffer)
@@ -232,7 +293,7 @@ GLuint create_texture(GLsizei width, GLsizei height, const void *data)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, data);
     return texture;
 }
 
@@ -280,11 +341,8 @@ std::int64_t initialize()
     init_buffers();
     init_projection();
 
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_DST_ALPHA);
-
-    auto texture = create_texture(4, 2, texture_example.data());
-    ::state->textured_draw_calls.emplace_back(0, 6, texture);
+    auto texture = create_texture(4, 4, texture_example.data());
+    ::state->font_draw_calls.emplace_back(0, 6, texture);
 
     return 0;
 }
@@ -351,17 +409,19 @@ std::int64_t render()
     state->arc_colors.clear();
     state->arc_circles.clear();
 
-    set_buffer(state->textured_vertex_buffer, state->textured_vertices);
-    set_buffer(state->textured_color_buffer, state->textured_colors);
-    set_buffer(state->textured_coord_buffer, state->textured_coords);
+    set_buffer(state->font_vertex_buffer, state->font_vertices);
+    set_buffer(state->font_background_color_buffer, state->font_background_colors);
+    set_buffer(state->font_color_buffer, state->font_colors);
+    set_buffer(state->font_coord_buffer, state->font_coords);
 
-    glUseProgram(state->textured_program);
-    glUniformMatrix4fv(glGetUniformLocation(state->textured_program, "u_Projection"), 1, false, state->projection.data());
-    set_vertex_attrib(state->textured_program, "a_Position", 2, state->textured_vertex_buffer);
-    set_vertex_attrib(state->textured_program, "a_Color", 4, state->textured_color_buffer);
-    set_vertex_attrib(state->textured_program, "a_TexCoord", 2, state->textured_coord_buffer);
+    glUseProgram(state->font_program);
+    glUniformMatrix4fv(glGetUniformLocation(state->font_program, "u_Projection"), 1, false, state->projection.data());
+    set_vertex_attrib(state->font_program, "a_Position", 2, state->font_vertex_buffer);
+    set_vertex_attrib(state->font_program, "a_BackgroundColor", 3, state->font_background_color_buffer);
+    set_vertex_attrib(state->font_program, "a_Color", 4, state->font_color_buffer);
+    set_vertex_attrib(state->font_program, "a_TexCoord", 2, state->font_coord_buffer);
 
-    for (auto& dc : state->textured_draw_calls)
+    for (auto& dc : state->font_draw_calls)
     {
         glUniform1i(glGetUniformLocation(state->arc_program, "u_Texture"), dc.texture);
         glDrawArrays(GL_TRIANGLES, dc.offset, dc.size);
