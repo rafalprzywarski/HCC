@@ -1,22 +1,34 @@
 (ns hcc.ui)
 (require 'hcc.graphics)
 
+(def fonts (atom nil))
+
+(def load-fonts! (fn* []
+                      (reset! fonts {:big (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 32)
+                                     :small (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)})))
+
 (def draw (fn* [n]
              (loop* [n n]
                (do
                  (hcc.graphics/clear)
-                 (hcc.graphics/arc 20 20 400 240, 197 26 74, 400 240 100 -1)
-                 (hcc.graphics/arc 400 240 780 460, 197 26 74, 400 240 100 -1)
+                 (hcc.graphics/arc 410 240 780 460, 255 100 72, 400 240 100 -1)
+                 (hcc.graphics/arc 20 240 390 460, 255 100 72, 400 240 100 -1)
                  (hcc.graphics/arc 20 20 780 460, 108 198 74, 400 240 80 1)
+                 (if @fonts
+                   (do
+                     (hcc.graphics/text (:small @fonts) "2457-24567-246724567-24567823567-24-5672457", 30 400, 0 0 0 255, 255 100 72)
+                     (hcc.graphics/text (:big @fonts) "DEVICE CONTROL CENTER             71286", 30 40, 255 100 72 255, 0 0 0)))
                  (hcc.graphics/render)
                  (hcc.graphics/swap-buffers)
-                 (if (= n 0) nil (recur (- n 1)))))))
+                 (if (< n 2) nil (recur (- n 1)))))))
 
 (def main
   (fn* []
        (do
          (hcc.graphics/initialize)
+         (draw 1)
          (println "initialized display" (hcc.graphics/get-display-width) "x" (hcc.graphics/get-display-height))
-         (draw 300)
+         (load-fonts!)
+         (draw 6000)
          (hcc.graphics/shutdown)
          (println "done"))))

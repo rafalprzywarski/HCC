@@ -2,11 +2,17 @@
 #include <bcm_host.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_GLYPH_H
 #include <string>
 #include <vector>
 #include <memory>
 #include <array>
+#include <algorithm>
+#include <numeric>
 #include <iostream>
+#include <unordered_map>
 
 namespace
 {
@@ -99,7 +105,9 @@ const std::string font_fragment_shader_source =
 HCC_GRAPHICS_TO_SRGB
 "void main()\n"
 "{\n"
-"    float alpha = texture2D(u_Texture, v_TexCoord).a;"
+"    float alpha = texture2D(u_Texture, v_TexCoord).a;\n"
+"    if (alpha == 0.0)\n"
+"        discard;\n"
 "    gl_FragColor = vec4(tosRGB(mix(v_BackgroundColor, v_Color.rgb, v_Color.a * alpha)), 1);\n"
 "}\n";
 
@@ -120,20 +128,51 @@ const EGLint CONTEXT_ATTRIBUTES[] =
     EGL_NONE
 };
 
-const std::array<std::uint8_t, 4 * 4> texture_example{{
-    255, 204, 162, 127,
-    204, 162, 127, 84,
-    162, 127, 84,  42,
-    127, 84,  42,  0,
-}};
-
-struct TexturedDrawCall
+struct FontDrawCall
 {
     GLint offset{};
     GLsizei size{};
     GLuint texture{};
-    TexturedDrawCall() = default;
-    TexturedDrawCall(GLint offset, GLsizei size, GLuint texture) : offset(offset), size(size), texture(texture) { }
+    FontDrawCall() = default;
+    FontDrawCall(GLint offset, GLsizei size, GLuint texture) : offset(offset), size(size), texture(texture) { }
+};
+
+struct Image
+{
+    unsigned width{}, height{};
+    std::vector<std::uint8_t> alpha;
+
+    Image() = default;
+    Image(unsigned width, unsigned height)
+        : width(width), height(height), alpha(width * height, 0) { }
+};
+
+struct FontGlyph
+{
+    int img_x{}, img_y{}, img_width{}, img_height{};
+};
+struct FontChar
+{
+    int bearing_x{}, bearing_y{}, advance_x{};
+    std::vector<FontGlyph> glyphs;
+};
+
+
+struct RasterizedFont
+{
+    int precision{};
+    Image image;
+    std::unordered_map<char, std::unordered_map<char, int>> kerning;
+    std::unordered_map<char, FontChar> chars;
+};
+
+struct Font
+{
+    int precision{};
+    int texture_width{}, texture_height{};
+    GLuint texture;
+    std::unordered_map<char, std::unordered_map<char, int>> kerning;
+    std::unordered_map<char, FontChar> chars;
 };
 
 struct State
@@ -142,37 +181,17 @@ struct State
     std::uint32_t display_width{}, display_height{};
     EGLSurface surface{};
     EGL_DISPMANX_WINDOW_T window{};
+    FT_Library freetype;
+
+    std::vector<Font> fonts;
+
     std::vector<GLfloat> arc_vertices;
     std::vector<GLfloat> arc_colors;
     std::vector<GLfloat> arc_circles;
-    std::vector<GLfloat> font_vertices{
-        100, 100,
-        200, 100,
-        200, 200,
-        100, 100,
-        200, 200,
-        100, 200};
-    std::vector<GLfloat> font_background_colors{
-        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
-        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
-        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
-        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
-        197 / 255.0f, 26 / 255.0f, 74 / 255.0f,
-        197 / 255.0f, 26 / 255.0f, 74 / 255.0f};
-    std::vector<GLfloat> font_colors{
-        0.5f, 0.75f, 0.25f, 0.75f,
-        0.5f, 0.75f, 0.25f, 0.75f,
-        0.5f, 0.75f, 0.25f, 0.75f,
-        0.5f, 0.75f, 0.25f, 0.75f,
-        0.5f, 0.75f, 0.25f, 0.75f,
-        0.5f, 0.75f, 0.25f, 0.75f};
-    std::vector<GLfloat> font_coords{
-        0, 0,
-        5, 0,
-        5, 5,
-        0, 0,
-        5, 5,
-        0, 5};
+    std::vector<GLfloat> font_vertices;
+    std::vector<GLfloat> font_background_colors;
+    std::vector<GLfloat> font_colors;
+    std::vector<GLfloat> font_coords;
     GLuint arc_vertex_buffer{};
     GLuint arc_color_buffer{};
     GLuint arc_circle_buffer{};
@@ -180,7 +199,7 @@ struct State
     GLuint font_background_color_buffer{};
     GLuint font_color_buffer{};
     GLuint font_coord_buffer{};
-    std::vector<TexturedDrawCall> font_draw_calls;
+    std::vector<FontDrawCall> font_draw_calls;
 
     GLuint arc_vertex_shader{};
     GLuint arc_fragment_shader{};
@@ -297,6 +316,97 @@ GLuint create_texture(GLsizei width, GLsizei height, const void *data)
     return texture;
 }
 
+
+Image downscale(FT_Bitmap bitmap, unsigned n, unsigned offset, unsigned y_offset)
+{
+    Image g{(bitmap.width + offset + (n - 1)) / n, (bitmap.rows + y_offset + (n - 1)) / n};
+    auto pitch = bitmap.pitch;
+    for (unsigned gy = 0; gy < g.height; ++gy)
+        for (unsigned gx = 0; gx < g.width; ++gx)
+        {
+            unsigned s = 0;
+            for (unsigned sy = (std::max(gy * n, y_offset) - y_offset) * pitch, msy = std::min((gy + 1) * n - y_offset, bitmap.rows) * pitch;
+                sy < msy;
+                sy += pitch)
+                s += std::accumulate(
+                    bitmap.buffer + std::max(gx * n, offset) - offset + sy,
+                    bitmap.buffer + std::min((gx + 1) * n - offset, bitmap.width) + sy, 0u);
+            g.alpha[gx + gy * g.width] = (s + (n * n) / 2) / (n * n);
+        }
+    return g;
+}
+
+void blit(Image& dst, unsigned dx, unsigned dy, const Image& src)
+{
+    if (dx >= dst.width)
+        return;
+    for (auto y = dy; y < std::min(dy + src.height, dst.height); ++y)
+        std::copy_n(src.alpha.data() + (y - dy) * src.width, std::min(src.width, dst.width - dx), dst.alpha.begin() + dx + y * dst.width);
+}
+
+RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned precision)
+{
+    RasterizedFont font;
+    font.precision = precision;
+    Image img{1024, 1024};
+    unsigned dx = 0, dy = 0, row_height = 0;
+    for (auto a : chars)
+        for (auto b : chars)
+        {
+            FT_Vector k{};
+            FT_Get_Kerning(face, FT_Get_Char_Index(face, a), FT_Get_Char_Index(face, b), FT_KERNING_UNFITTED, &k);
+            font.kerning[a][b] = (k.x + 31) / 64;
+        }
+    for (auto c : chars)
+    {
+        FT_Load_Char(face, c, FT_LOAD_RENDER);
+        FT_Glyph glyph;
+        FT_Get_Glyph(face->glyph, &glyph);
+        auto bg = (FT_BitmapGlyph)glyph;
+
+        font.chars[c].glyphs.reserve(precision);
+        font.chars[c].bearing_x = face->glyph->metrics.horiBearingX / 64;
+        font.chars[c].bearing_y = face->glyph->metrics.horiBearingY / 64;
+        font.chars[c].advance_x = face->glyph->metrics.horiAdvance / 64;
+        for (unsigned offset = 0; offset < precision; ++offset)
+        {
+            auto g = downscale(bg->bitmap, precision, offset, (font.precision - ((face->glyph->metrics.horiBearingY / 64) % font.precision)) % font.precision);
+            if ((dx + g.width) >= img.width)
+            {
+                dx = 0;
+                dy += row_height;
+                row_height = 0;
+            }
+            row_height = std::max(row_height, g.height);
+            blit(img, dx, dy, g);
+
+            FontGlyph fg;
+            fg.img_x = dx;
+            fg.img_y = dy;
+            fg.img_width = g.width;
+            fg.img_height = g.height;
+            font.chars[c].glyphs.push_back(fg);
+
+            dx += g.width;
+        }
+    }
+    font.image = img;
+    return font;
+}
+
+Font generate_font(FT_Face face, const std::string& chars, unsigned precision)
+{
+    auto rf = rasterize_font(face, chars, precision);
+    Font f;
+    f.precision = rf.precision;
+    f.texture_width = rf.image.width;
+    f.texture_height = rf.image.height;
+    f.texture = create_texture(rf.image.width, rf.image.height, rf.image.alpha.data());
+    f.kerning = rf.kerning;
+    f.chars = rf.chars;
+    return f;
+}
+
 }
 
 extern "C"
@@ -341,8 +451,10 @@ std::int64_t initialize()
     init_buffers();
     init_projection();
 
-    auto texture = create_texture(4, 4, texture_example.data());
-    ::state->font_draw_calls.emplace_back(0, 6, texture);
+    glEnable(GL_BLEND);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_DST_ALPHA);
+
+    FT_Init_FreeType(&::state->freetype);
 
     return 0;
 }
@@ -390,6 +502,78 @@ std::int64_t arc(
     return 0;
 }
 
+std::int64_t load_font(const char *filename, std::int64_t size)
+{
+    const unsigned PRECISION = 16;
+    FT_Face fontface;
+    FT_New_Face(::state->freetype, filename, 0, &fontface);
+    FT_Set_Char_Size(fontface, 0, size * PRECISION * 64, 131, 142);
+
+    std::string charset;
+    for (char c = 32; c < 127; ++c)
+        charset += c;
+    ::state->fonts.push_back(generate_font(fontface, charset, 16));
+
+    FT_Done_Face(fontface);
+
+    return ::state->fonts.size() - 1;
+}
+
+std::int64_t text(
+    std::int64_t font_id, const char *text,
+    std::int64_t x, std::int64_t y,
+    std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a,
+    std::int64_t bg_r, std::int64_t bg_g, std::int64_t bg_b)
+{
+    auto& font = ::state->fonts.at(font_id);
+    auto array_offset = ::state->font_vertices.size() / 2;
+    auto pen_x = x * font.precision;
+    char prev_ch = 0;
+    for (char ch : std::string(text))
+    {
+        if (prev_ch)
+            pen_x += font.kerning.at(prev_ch).at(ch);
+
+        auto& char_ = font.chars.at(ch);
+        auto bearing_x = char_.bearing_x;
+        auto glyph_x = pen_x + bearing_x;
+        auto glyph_x_tr = glyph_x / font.precision;
+        auto glyph = font.chars.at(ch).glyphs[glyph_x % font.precision];
+        auto bearing_y = char_.bearing_y / font.precision;
+        std::array<GLfloat, 12> vs{{
+            GLfloat(glyph_x_tr), GLfloat(y + bearing_y - glyph.img_height),
+            GLfloat(glyph_x_tr + glyph.img_width), GLfloat(y + bearing_y - glyph.img_height),
+            GLfloat(glyph_x_tr + glyph.img_width), GLfloat(y + bearing_y),
+            GLfloat(glyph_x_tr), GLfloat(y + bearing_y - glyph.img_height),
+            GLfloat(glyph_x_tr + glyph.img_width), GLfloat(y + bearing_y),
+            GLfloat(glyph_x_tr), GLfloat(y + bearing_y),
+        }};
+        std::array<GLfloat, 12> tc{{
+            GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y + glyph.img_height) / font.texture_height,
+            GLfloat(glyph.img_x + glyph.img_width) / font.texture_width, GLfloat(glyph.img_y + glyph.img_height) / font.texture_height,
+            GLfloat(glyph.img_x + glyph.img_width) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
+            GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y + glyph.img_height) / font.texture_height,
+            GLfloat(glyph.img_x + glyph.img_width) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
+            GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
+        }};
+        std::array<GLfloat, 4> color{{c_r / 255.0f, c_g / 255.0f, c_b / 255.0f, c_a / 255.0f}};
+        std::array<GLfloat, 3> bg_color{{bg_r / 255.0f, bg_g / 255.0f, bg_b / 255.0f}};
+
+        ::state->font_vertices.insert(::state->font_vertices.end(), vs.begin(), vs.end());
+        ::state->font_coords.insert(::state->font_coords.end(), tc.begin(), tc.end());
+        for (int i = 0; i < 6; ++i)
+        {
+            ::state->font_colors.insert(end(::state->font_colors), begin(color), end(color));
+            ::state->font_background_colors.insert(end(::state->font_background_colors), begin(bg_color), end(bg_color));
+        }
+
+        pen_x += char_.advance_x;
+        prev_ch = ch;
+    }
+    ::state->font_draw_calls.emplace_back(array_offset, ::state->font_vertices.size() / 2 - array_offset, font.texture);
+    return 0;
+}
+
 std::int64_t render()
 {
     if (!state)
@@ -420,12 +604,19 @@ std::int64_t render()
     set_vertex_attrib(state->font_program, "a_BackgroundColor", 3, state->font_background_color_buffer);
     set_vertex_attrib(state->font_program, "a_Color", 4, state->font_color_buffer);
     set_vertex_attrib(state->font_program, "a_TexCoord", 2, state->font_coord_buffer);
+    glUniform1i(glGetUniformLocation(state->font_program, "u_Texture"), 0);
 
+    glActiveTexture(GL_TEXTURE0);
     for (auto& dc : state->font_draw_calls)
     {
-        glUniform1i(glGetUniformLocation(state->arc_program, "u_Texture"), dc.texture);
+        glBindTexture(GL_TEXTURE_2D, dc.texture);
         glDrawArrays(GL_TRIANGLES, dc.offset, dc.size);
     }
+    state->font_vertices.clear();
+    state->font_colors.clear();
+    state->font_background_colors.clear();
+    state->font_coords.clear();
+    state->font_draw_calls.clear();
 
     return 0;
 }
