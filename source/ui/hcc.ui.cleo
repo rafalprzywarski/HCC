@@ -3,32 +3,79 @@
 
 (def fonts (atom nil))
 
-(def load-fonts! (fn* []
-                      (reset! fonts {:big (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 32)
-                                     :small (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)})))
+(def main-scene
+  [{:type :arc
+    :min [410 240]
+    :max [780 460]
+    :center [400 240]
+    :radius 100
+    :color [255 100 72]
+    :inverted :true}
+   {:type :arc
+    :min [20 240]
+    :max [390 460]
+    :center [400 240]
+    :radius 100
+    :color [255 100 72]
+    :inverted :true}
+   {:type :arc
+    :min [20 20]
+    :max [780 460]
+    :center [400 240]
+    :radius 80
+    :color [108 198 74]}
+   {:type :text
+    :font :small
+    :text "2457-24567-246724567-24567823567-24-5672457"
+    :origin [30 400]
+    :color [0 0 0 255]
+    :background-color [255 100 72]}
+   {:type :text
+    :font :big
+    :text "DEVICE CONTROL CENTER             71286"
+    :origin [30 40]
+    :color [255 100 72 255]
+    :background-color [0 0 0]}])
 
-(def draw (fn* [n]
-             (loop* [n n]
-               (do
-                 (hcc.graphics/clear)
-                 (hcc.graphics/arc 410 240 780 460, 255 100 72, 400 240 100 -1)
-                 (hcc.graphics/arc 20 240 390 460, 255 100 72, 400 240 100 -1)
-                 (hcc.graphics/arc 20 20 780 460, 108 198 74, 400 240 80 1)
-                 (if @fonts
-                   (do
-                     (hcc.graphics/text (:small @fonts) "2457-24567-246724567-24567823567-24-5672457", 30 400, 0 0 0 255, 255 100 72)
-                     (hcc.graphics/text (:big @fonts) "DEVICE CONTROL CENTER             71286", 30 40, 255 100 72 255, 0 0 0)))
-                 (hcc.graphics/render)
-                 (hcc.graphics/swap-buffers)
-                 (if (< n 2) nil (recur (- n 1)))))))
+(def renderers {:arc (fn* [e]
+                       (hcc.graphics/arc! ((:min e) 0) ((:min e) 1) ((:max e) 0) ((:max e) 1) ((:color e) 0) ((:color e) 1) ((:color e) 2) ((:center e) 0) ((:center e) 1) (:radius e) (if (:inverted e) -1 1)))
+                :text (fn* [e]
+                        (if @fonts
+                          (hcc.graphics/text! (@fonts (:font e)) (:text e) ((:origin e) 0) ((:origin e) 1) ((:color e) 0) ((:color e) 1) ((:color e) 2) ((:color e) 3) ((:background-color e) 0) ((:background-color e) 1) ((:background-color e) 2))))})
+
+(def render-scene!
+  (fn* [scene]
+    (do
+      (loop* [s (seq scene)]
+        (if s
+          (do
+            ((renderers (:type (first s))) (first s))
+            (recur (next s)))))
+      (hcc.graphics/render!))))
+
+
+(def load-fonts (fn* [] {:big (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 32)
+                         :small (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)}))
+
+
+(def render-for!
+  (fn* [n]
+    (loop* [n n]
+      (do
+        (hcc.graphics/clear!)
+        (render-scene! main-scene)
+        (hcc.graphics/swap-buffers!)
+        (if (< n 2) nil (recur (- n 1)))))))
+
 
 (def main
   (fn* []
        (do
-         (hcc.graphics/initialize)
-         (draw 1)
+         (hcc.graphics/initialize!)
+         (render-for! 1)
          (println "initialized display" (hcc.graphics/get-display-width) "x" (hcc.graphics/get-display-height))
-         (load-fonts!)
-         (draw 6000)
-         (hcc.graphics/shutdown)
+         (reset! fonts (load-fonts))
+         (println "loaded fonts")
+         (render-for! 600)
+         (hcc.graphics/shutdown!)
          (println "done"))))
