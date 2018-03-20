@@ -1,13 +1,26 @@
 (ns hcc.graphics)
 
-(def libname "../../Release/source/graphics/libhcc_graphics.so")
-(def initialize! (import-c-fn libname "initialize" :int64 []))
-(def shutdown! (import-c-fn libname "shutdown" :int64 []))
-(def clear! (import-c-fn libname "clear" :int64 []))
-(def render! (import-c-fn libname "render" :int64 []))
-(def arc! (import-c-fn libname "arc" :int64 [:int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64]))
-(def load-font (import-c-fn libname "load_font" :int64 [:string :int64]))
-(def text! (import-c-fn libname "text" :int64 [:int64 :string :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64]))
-(def swap-buffers! (import-c-fn libname "swap_buffers" :int64 []))
-(def get-display-width (import-c-fn libname "get_display_width" :int64 []))
-(def get-display-height (import-c-fn libname "get_display_height" :int64 []))
+
+(defn gen-icfn [libname cname ret-type param-types]
+  (list `import-c-fn libname cname ret-type param-types))
+
+
+(defmacro defcfns [libname & decls]
+  (loop* [decls (seq decls) defs ()]
+    (if decls
+      (let [decl (first decls)]
+        (recur (next decls) (conj defs (list 'def (first decl) (apply* gen-icfn (conj (next decl) libname))))))
+      (conj defs 'do))))
+
+
+(defcfns "../../Release/source/graphics/libhcc_graphics.so"
+  (initialize! "initialize" :int64 [])
+  (shutdown! "shutdown" :int64 [])
+  (clear! "clear" :int64 [])
+  (render! "render" :int64 [])
+  (arc! "arc" :int64 [:int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
+  (load-font "load_font" :int64 [:string :int64])
+  (text! "text" :int64 [:int64 :string :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
+  (swap-buffers! "swap_buffers" :int64 [])
+  (get-display-width "get_display_width" :int64 [])
+  (get-display-height "get_display_height" :int64 []))

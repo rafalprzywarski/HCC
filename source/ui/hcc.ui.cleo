@@ -37,45 +37,42 @@
     :color [255 100 72 255]
     :background-color [0 0 0]}])
 
-(def renderers {:arc (fn* [e]
+(def renderers {:arc (fn [e]
                        (hcc.graphics/arc! ((:min e) 0) ((:min e) 1) ((:max e) 0) ((:max e) 1) ((:color e) 0) ((:color e) 1) ((:color e) 2) ((:center e) 0) ((:center e) 1) (:radius e) (if (:inverted e) -1 1)))
-                :text (fn* [e]
+                :text (fn [e]
                         (if @fonts
                           (hcc.graphics/text! (@fonts (:font e)) (:text e) ((:origin e) 0) ((:origin e) 1) ((:color e) 0) ((:color e) 1) ((:color e) 2) ((:color e) 3) ((:background-color e) 0) ((:background-color e) 1) ((:background-color e) 2))))})
 
-(def render-scene!
-  (fn* [scene]
+(defn render-scene! [scene]
+  (do
+    (loop* [s (seq scene)]
+      (if s
+        (do
+          ((renderers (:type (first s))) (first s))
+          (recur (next s)))))
+    (hcc.graphics/render!)))
+
+
+(defn load-fonts [] {:big (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 32)
+                     :small (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)})
+
+
+(defn render-for! [n]
+  (loop* [n n]
     (do
-      (loop* [s (seq scene)]
-        (if s
-          (do
-            ((renderers (:type (first s))) (first s))
-            (recur (next s)))))
-      (hcc.graphics/render!))))
+      (hcc.graphics/clear!)
+      (render-scene! main-scene)
+      (hcc.graphics/swap-buffers!)
+      (if (< n 2) nil (recur (- n 1))))))
 
 
-(def load-fonts (fn* [] {:big (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 32)
-                         :small (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)}))
-
-
-(def render-for!
-  (fn* [n]
-    (loop* [n n]
-      (do
-        (hcc.graphics/clear!)
-        (render-scene! main-scene)
-        (hcc.graphics/swap-buffers!)
-        (if (< n 2) nil (recur (- n 1)))))))
-
-
-(def main
-  (fn* []
-       (do
-         (hcc.graphics/initialize!)
-         (render-for! 1)
-         (println "initialized display" (hcc.graphics/get-display-width) "x" (hcc.graphics/get-display-height))
-         (reset! fonts (load-fonts))
-         (println "loaded fonts")
-         (render-for! 600)
-         (hcc.graphics/shutdown!)
-         (println "done"))))
+(defn main []
+  (do
+    (hcc.graphics/initialize!)
+    (render-for! 1)
+    (println "initialized display" (hcc.graphics/get-display-width) "x" (hcc.graphics/get-display-height))
+    (reset! fonts (load-fonts))
+    (println "loaded fonts")
+    (render-for! 600)
+    (hcc.graphics/shutdown!)
+    (println "done")))
