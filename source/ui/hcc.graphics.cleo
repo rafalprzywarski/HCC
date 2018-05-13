@@ -6,11 +6,7 @@
 
 
 (defmacro defcfns [libname & decls]
-  (loop* [decls (seq decls) defs ()]
-    (if decls
-      (let [decl (first decls)]
-        (recur (next decls) (conj defs (list 'def (first decl) (apply* gen-icfn (conj (next decl) libname))))))
-      (conj defs 'do))))
+  `(do ~@(map1 (fn [decl] (list 'def (first decl) (apply* gen-icfn (conj (next decl) libname)))) decls)))
 
 
 (defcfns "../../Release/source/graphics/libhcc_graphics.so"
