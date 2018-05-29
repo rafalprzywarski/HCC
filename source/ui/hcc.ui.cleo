@@ -1,27 +1,28 @@
 (ns hcc.ui)
 (require 'hcc.graphics)
+(alias 'g 'hcc.graphics)
 
 (def fonts (atom nil))
 
 (def main-scene
   [{:type :arc
-    :min [410 240]
-    :max [780 460]
-    :center [400 240]
+    :origin [410 240]
+    :extents [370 220]
+    :center [-10 0]
     :radius 100
     :color [255 100 72]
-    :inverted :true}
+    :inverted? :true}
    {:type :arc
-    :min [20 240]
-    :max [390 460]
-    :center [400 240]
+    :origin [20 240]
+    :extents [370 220]
+    :center [380 0]
     :radius 100
     :color [255 100 72]
-    :inverted :true}
+    :inverted? :true}
    {:type :arc
-    :min [20 20]
-    :max [780 460]
-    :center [400 240]
+    :origin [20 20]
+    :extents [760 440]
+    :center [380 220]
     :radius 80
     :color [108 198 74]}
    {:type :text
@@ -38,42 +39,42 @@
     :background-color [0 0 0]}])
 
 (def renderers
-  {:arc (fn [{[min-x min-y] :min
-              [max-x max-y] :max
+  {:arc (fn [{[origin-x origin-y] :origin
+              [width height] :extents
               [r g b] :color
               [center-x center-y] :center
-              :keys [radius inverted]}]
-          (hcc.graphics/arc! min-x min-y max-x max-y r g b center-x center-y radius (if inverted -1 1)))
+              :keys [radius inverted?]}]
+          (g/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
    :text (fn [{[origin-x origin-y] :origin
                [r g b a] :color
                [br bg bb] :background-color
                :keys [font text]}]
            (if @fonts
-             (hcc.graphics/text! (@fonts font) text origin-x origin-y r g b a br bg bb)))})
+             (g/text! (@fonts font) text origin-x origin-y r g b a br bg bb)))})
 
 
 (defn render-scene! [scene]
   (doseq [elem scene]
     ((renderers (:type elem)) elem))
-  (hcc.graphics/render!))
+  (g/render!))
 
 
-(defn load-fonts [] {:big (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 32)
-                     :small (hcc.graphics/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)})
+(defn load-fonts [] {:big (g/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 32)
+                     :small (g/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)})
 
 
 (defn render-for! [n]
   (dotimes [i n]
-    (hcc.graphics/clear!)
+    (g/clear!)
     (render-scene! main-scene)
-    (hcc.graphics/swap-buffers!)))
+    (g/swap-buffers!)))
 
 (defn main []
-   (hcc.graphics/initialize!)
+   (g/initialize!)
    (render-for! 1)
-   (println "initialized display" (hcc.graphics/get-display-width) "x" (hcc.graphics/get-display-height))
+   (println "initialized display" (g/get-display-width) "x" (g/get-display-height))
    (reset! fonts (load-fonts))
    (println "loaded fonts")
    (render-for! 600)
-   (hcc.graphics/shutdown!)
+   (g/shutdown!)
    (println "done"))
