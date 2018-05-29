@@ -9,7 +9,7 @@
   `(do ~@(map1 (fn [decl] (list 'def (first decl) (apply* gen-icfn (conj (next decl) libname)))) decls)))
 
 
-(defcfns "../../Release/source/graphics/libhcc_graphics.so"
+(defcfns "Release/source/graphics/libhcc_graphics.so"
   (initialize! "initialize" :int64 [])
   (shutdown! "shutdown" :int64 [])
   (clear! "clear" :int64 [])
