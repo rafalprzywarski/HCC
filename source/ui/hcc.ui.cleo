@@ -29,14 +29,14 @@
     :font :small
     :text "2457-24567-246724567-24567823567-24-5672457"
     :origin [30 400]
-    :color [0 0 0 255]
-    :background-color [255 100 72]}
+    :text-color [0 0 0 255]
+    :color [255 100 72]}
    {:type :text
     :font :big
     :text "DEVICE CONTROL CENTER             71286"
     :origin [30 40]
-    :color [255 100 72 255]
-    :background-color [0 0 0]}])
+    :text-color [255 100 72 255]
+    :color [0 0 0]}])
 
 (def renderers
   {:arc (fn [{[origin-x origin-y] :origin
@@ -46,11 +46,11 @@
               :keys [radius inverted?]}]
           (g/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
    :text (fn [{[origin-x origin-y] :origin
-               [r g b a] :color
-               [br bg bb] :background-color
+               [tr tg tb ta] :text-color
+               [r g b] :color
                :keys [font text]}]
            (if @fonts
-             (g/text! (@fonts font) text origin-x origin-y r g b a br bg bb)))})
+             (g/text! (@fonts font) text origin-x origin-y tr tg tb ta r g b)))})
 
 
 (defn render-scene! [scene]
