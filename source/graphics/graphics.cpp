@@ -502,6 +502,14 @@ std::int64_t arc(
     return 0;
 }
 
+std::int64_t rect(
+    std::int64_t x0, std::int64_t y0,
+    std::int64_t x1, std::int64_t y1,
+    std::int64_t r, std::int64_t g, std::int64_t b)
+{
+    return arc(x0, y0, x1, y1, r, g, b, 0, 0, -16, -1);
+}
+
 std::int64_t load_font(const char *filename, std::int64_t size)
 {
     const unsigned PRECISION = 16;

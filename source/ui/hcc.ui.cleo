@@ -45,12 +45,14 @@
     :font :small
     :text "2457-24567-246724567-24567823567-24-5672457"
     :origin [30 400]
+    :extents [40 40]
     :text-color :black
     :color :primary}
    {:type :label
     :font :big
     :text "DEVICE CONTROL CENTER             71286"
     :origin [30 40]
+    :extents [10 10]
     :text-color :primary
     :color :black}])
 
@@ -67,10 +69,14 @@
                                             (v2+ porigin origin)
                                             origin)))
                    primitives)))
-   :label (fn [palette {:keys [origin color font text text-color]}]
+   :label (fn [palette {:keys [origin extents color font text text-color]}]
             (let [color (palette color)
                   text-color (palette text-color)]
-              [{:type :text
+              [{:type :rect
+                :origin origin
+                :extents extents
+                :color color}
+               {:type :text
                 :font font
                 :text text
                 :origin origin
@@ -99,6 +105,10 @@
               [center-x center-y] :center
               :keys [radius inverted?]}]
           (g/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
+   :rect (fn [{[origin-x origin-y] :origin
+               [width height] :extents
+               [r g b] :color}]
+           (g/rect! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b))
    :text (fn [{[origin-x origin-y] :origin
                [tr tg tb ta] :text-color
                [r g b] :color

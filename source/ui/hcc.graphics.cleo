@@ -15,6 +15,7 @@
   (clear! "clear" :int64 [])
   (render! "render" :int64 [])
   (arc! "arc" :int64 [:int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
+  (rect! "rect" :int64 [:int64 :int64 :int64 :int64 :int64 :int64 :int64])
   (load-font "load_font" :int64 [:string :int64])
   (text! "text" :int64 [:int64 :string :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
   (swap-buffers! "swap_buffers" :int64 [])
