@@ -407,6 +407,20 @@ Font generate_font(FT_Face face, const std::string& chars, unsigned precision)
     return f;
 }
 
+std::int64_t text_width(const Font& font, const char *text)
+{
+    int width = 0;
+    char prev_ch = 0;
+    for (auto p = text; *p; ++p)
+    {
+        auto ch = *p;
+        if (prev_ch)
+            width += font.kerning.at(prev_ch).at(ch);
+        width += font.chars.at(ch).advance_x;
+    }
+    return width;
+}
+
 }
 
 extern "C"
@@ -530,12 +544,17 @@ std::int64_t load_font(const char *filename, std::int64_t size)
 std::int64_t text(
     std::int64_t font_id, const char *text,
     std::int64_t x, std::int64_t y,
+    std::int64_t anchor,
     std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a,
     std::int64_t bg_r, std::int64_t bg_g, std::int64_t bg_b)
 {
     auto& font = ::state->fonts.at(font_id);
     auto array_offset = ::state->font_vertices.size() / 2;
     auto pen_x = x * font.precision;
+    if (anchor > 0)
+        pen_x -= text_width(font, text);
+    if (anchor == 0)
+        pen_x -= text_width(font, text) / 2;
     char prev_ch = 0;
     for (char ch : std::string(text))
     {
