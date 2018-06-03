@@ -4,39 +4,93 @@
 
 (def fonts (atom nil))
 
-(def main-scene
-  [{:type :arc
-    :origin [410 240]
-    :extents [370 220]
-    :center [-10 0]
-    :radius 100
-    :color [255 100 72]
-    :inverted? :true}
-   {:type :arc
-    :origin [20 240]
-    :extents [370 220]
-    :center [380 0]
-    :radius 100
-    :color [255 100 72]
-    :inverted? :true}
-   {:type :arc
+
+(def main-palette
+  {:primary [74 149 221]
+   :secondary [255 100 72]
+   :tertiary [255 180 72]
+   :quateriary [65 229 121]
+   :hightlight [255 255 255]
+   :text [0 0 0]})
+
+(def main-palette
+  {:primary [255 100 72 255]
+   :secondary [108 198 74 255]
+   :black [0 0 0 255]})
+
+(def main-ui
+  [{:type :shape
     :origin [20 20]
-    :extents [760 440]
-    :center [380 220]
-    :radius 80
-    :color [108 198 74]}
-   {:type :text
+    :color :primary
+    :primitives [{:type :arc
+                  :origin [390 220]
+                  :extents [370 220]
+                  :center [-10 0]
+                  :radius 100
+                  :inverted? :true}
+                 {:type :arc
+                  :origin [0 220]
+                  :extents [370 220]
+                  :center [380 0]
+                  :radius 100
+                  :inverted? :true}]}
+   {:type :shape
+    :origin [20 20]
+    :color :secondary
+    :primitives [{:type :arc
+                  :extents [760 440]
+                  :center [380 220]
+                  :radius 80}]}
+   {:type :label
     :font :small
     :text "2457-24567-246724567-24567823567-24-5672457"
     :origin [30 400]
-    :text-color [0 0 0 255]
-    :color [255 100 72]}
-   {:type :text
+    :text-color :black
+    :color :primary}
+   {:type :label
     :font :big
     :text "DEVICE CONTROL CENTER             71286"
     :origin [30 40]
-    :text-color [255 100 72 255]
-    :color [0 0 0]}])
+    :text-color :primary
+    :color :black}])
+
+
+(defn v2+ [[x1 y1] [x2 y2]] [(+ x1 x2) (+ y1 y2)])
+
+
+(def ui-renderers
+  {:shape (fn [palette {:keys [origin color primitives]}]
+            (let [color (palette color)]
+              (map (fn [p] (assoc p
+                                  :color color
+                                  :origin (if-let [porigin (:origin p)]
+                                            (v2+ porigin origin)
+                                            origin)))
+                   primitives)))
+   :label (fn [palette {:keys [origin color font text text-color]}]
+            (let [color (palette color)
+                  text-color (palette text-color)]
+              [{:type :text
+                :font font
+                :text text
+                :origin origin
+                :color color
+                :text-color text-color}]))})
+
+
+(defn mapcatv [f coll]
+  (loop [s (seq coll)
+         out []]
+    (if s
+      (recur (next s) (concati out (f (first s))))
+      out)))
+
+
+(defn render-primitives [palette ui]
+  (mapcatv (fn [elem]
+             ((ui-renderers (:type elem)) palette elem))
+           ui))
+
 
 (def renderers
   {:arc (fn [{[origin-x origin-y] :origin
@@ -66,7 +120,7 @@
 (defn render-for! [n]
   (dotimes [i n]
     (g/clear!)
-    (render-scene! main-scene)
+    (render-scene! (render-primitives main-palette main-ui))
     (g/swap-buffers!)))
 
 (defn main []
