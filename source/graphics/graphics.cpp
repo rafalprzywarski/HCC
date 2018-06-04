@@ -169,6 +169,7 @@ struct RasterizedFont
 struct Font
 {
     int precision{};
+    int ascender{}, descender{};
     int texture_width{}, texture_height{};
     GLuint texture;
     std::unordered_map<char, std::unordered_map<char, int>> kerning;
@@ -366,11 +367,13 @@ RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned p
 
         font.chars[c].glyphs.reserve(precision);
         font.chars[c].bearing_x = face->glyph->metrics.horiBearingX / 64;
-        font.chars[c].bearing_y = face->glyph->metrics.horiBearingY / 64;
+        auto bearing_y = face->glyph->metrics.horiBearingY / 64;
+        font.chars[c].bearing_y = (bearing_y + precision - 1) / precision * precision;
         font.chars[c].advance_x = face->glyph->metrics.horiAdvance / 64;
+
         for (unsigned offset = 0; offset < precision; ++offset)
         {
-            auto g = downscale(bg->bitmap, precision, offset, (font.precision - ((face->glyph->metrics.horiBearingY / 64) % font.precision)) % font.precision);
+            auto g = downscale(bg->bitmap, precision, offset, (font.precision - (bearing_y % font.precision)) % font.precision);
             if ((dx + g.width) >= img.width)
             {
                 dx = 0;
@@ -399,6 +402,8 @@ Font generate_font(FT_Face face, const std::string& chars, unsigned precision)
     auto rf = rasterize_font(face, chars, precision);
     Font f;
     f.precision = rf.precision;
+    f.ascender = (FT_MulFix(face->ascender, face->size->metrics.y_scale) + (64 * rf.precision - 1)) / (64 * rf.precision);
+    f.descender = -(FT_MulFix(-face->descender, face->size->metrics.y_scale) + (64 * rf.precision - 1)) / (64 * rf.precision);
     f.texture_width = rf.image.width;
     f.texture_height = rf.image.height;
     f.texture = create_texture(rf.image.width, rf.image.height, rf.image.alpha.data());
@@ -544,7 +549,7 @@ std::int64_t load_font(const char *filename, std::int64_t size)
 std::int64_t text(
     std::int64_t font_id, const char *text,
     std::int64_t x, std::int64_t y,
-    std::int64_t anchor,
+    std::int64_t anchor, std::int64_t vanchor,
     std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a,
     std::int64_t bg_r, std::int64_t bg_g, std::int64_t bg_b)
 {
@@ -553,8 +558,14 @@ std::int64_t text(
     auto pen_x = x * font.precision;
     if (anchor > 0)
         pen_x -= text_width(font, text);
-    if (anchor == 0)
+    else if (anchor == 0)
         pen_x -= text_width(font, text) / 2;
+    if (vanchor > 0)
+        y -= font.ascender;
+    else if (vanchor == 0)
+        y -= (font.ascender + font.descender) / 2;
+    else // (vanchor < 0)
+        y -= font.descender;
     char prev_ch = 0;
     for (char ch : std::string(text))
     {

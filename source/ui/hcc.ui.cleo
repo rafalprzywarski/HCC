@@ -51,13 +51,13 @@
    {:type :label
     :font :big
     :text "DEVICE CONTROL CENTER             71286"
-    :origin [30 40]
+    :origin [30 15]
     :extents [10 10]
     :text-color :primary
     :color :black}
    {:type :label
     :font :small
-    :text "left bottom"
+    :text "[left-bottom]"
     :origin [20 90]
     :extents [100 40]
     :text-color :black
@@ -66,7 +66,7 @@
     :color :secondary}
    {:type :label
     :font :small
-    :text "left center"
+    :text "[left-center]"
     :origin [20 140]
     :extents [100 40]
     :text-color :black
@@ -75,7 +75,7 @@
     :color :secondary}
    {:type :label
     :font :small
-    :text "left top"
+    :text "[left-top]"
     :origin [20 190]
     :extents [100 40]
     :text-color :black
@@ -84,7 +84,7 @@
     :color :secondary}
    {:type :label
     :font :small
-    :text "center bottom"
+    :text "[center-bottom]"
     :origin [130 90]
     :extents [100 40]
     :text-color :black
@@ -93,7 +93,7 @@
     :color :secondary}
    {:type :label
     :font :small
-    :text "center center"
+    :text "[center-center]"
     :origin [130 140]
     :extents [100 40]
     :text-color :black
@@ -102,7 +102,7 @@
     :color :secondary}
    {:type :label
     :font :small
-    :text "center top"
+    :text "[center-top]"
     :origin [130 190]
     :extents [100 40]
     :text-color :black
@@ -111,7 +111,7 @@
     :color :secondary}
    {:type :label
     :font :small
-    :text "right bottom"
+    :text "[right-bottom]"
     :origin [240 90]
     :extents [100 40]
     :text-color :black
@@ -120,7 +120,7 @@
     :color :secondary}
    {:type :label
     :font :small
-    :text "right center"
+    :text "[right-center]"
     :origin [240 140]
     :extents [100 40]
     :text-color :black
@@ -129,7 +129,7 @@
     :color :secondary}
    {:type :label
     :font :small
-    :text "right top"
+    :text "[right-top]"
     :origin [240 190]
     :extents [100 40]
     :text-color :black
@@ -141,11 +141,18 @@
 (defn v2+ [[x1 y1] [x2 y2]] [(+ x1 x2) (+ y1 y2)])
 
 
-(defn align-text [text align [origin-x origin-y] [width]]
-  (cond
-    (= align :center) {:text-anchor :center :origin [(+ origin-x (/ width 2)) origin-y]}
-    (= align :right) {:text-anchor :right :origin [(+ origin-x width) origin-y]}
-    :else {:text-anchor :left :origin [origin-x origin-y]}))
+(defn align-text [text align valign [origin-x origin-y] [width height]]
+  (let [origin-x (cond
+                   (= align :center) (+ origin-x (/ width 2))
+                   (= align :right) (+ origin-x width)
+                   :else origin-x)
+        origin-y (cond
+                   (= valign :center) (+ origin-y (/ height 2))
+                   (= valign :top) (+ origin-y height)
+                   :else origin-y)]
+    {:text-anchor ({:center :center, :right :right} align :left)
+     :text-vanchor ({:center :center, :top :top} valign :bottom) ; TODO: use hash-set
+     :origin [origin-x origin-y]}))
 
 
 (def ui-renderers
@@ -153,11 +160,9 @@
             (let [color (palette color)]
               (map (fn [p] (assoc p
                                   :color color
-                                  :origin (if-let [porigin (:origin p)]
-                                            (v2+ porigin origin)
-                                            origin)))
+                                  :origin (v2+ (p :origin [0 0]) origin)))
                    primitives)))
-   :label (fn [palette {:keys [origin extents color font text text-color text-align]}]
+   :label (fn [palette {:keys [origin extents color font text text-color text-align text-valign]}]
             (let [color (palette color)
                   text-color (palette text-color)]
               [{:type :rect
@@ -169,7 +174,7 @@
                        :text text
                        :color color
                        :text-color text-color}
-                      (align-text text text-align origin extents))]))})
+                      (align-text text text-align text-valign origin extents))]))})
 
 
 (defn mapcatv [f coll]
@@ -200,9 +205,14 @@
    :text (fn [{[origin-x origin-y] :origin
                [tr tg tb ta] :text-color
                [r g b] :color
-               :keys [font text text-anchor]}]
+               :keys [font text text-anchor text-vanchor]}]
            (if @fonts
-             (g/text! (@fonts font) text origin-x origin-y ({:center 0, :right 1} text-anchor -1) tr tg tb ta r g b)))})
+             (g/text! (@fonts font)
+                      text
+                      origin-x origin-y
+                      ({:center 0, :right 1} text-anchor -1) ({:center 0, :top 1} text-vanchor -1)
+                      tr tg tb ta
+                      r g b)))})
 
 
 (defn render-scene! [scene]
@@ -227,6 +237,6 @@
    (println "initialized display" (g/get-display-width) "x" (g/get-display-height))
    (reset! fonts (load-fonts))
    (println "loaded fonts")
-   (render-for! 600)
+   (render-for! 200)
    (g/shutdown!)
    (println "done"))
