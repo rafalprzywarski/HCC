@@ -144,7 +144,17 @@
     :text-align :right
     :text-valign :top
     :margin 2
-    :color :secondary}])
+    :color :secondary}
+   {:type :rounded-button
+    :font :small
+    :text "742-5625"
+    :origin [400 110]
+    :extents [200 60]
+    :text-color :black
+    :text-align :right
+    :text-valign :bottom
+    :margin 5
+    :color :primary}])
 
 
 (defn v2+ [[x1 y1] [x2 y2]] [(+ x1 x2) (+ y1 y2)])
@@ -164,27 +174,61 @@
      :text-vanchor ({:center :center, :top :top} valign :bottom) ; TODO: use hash-set
      :origin [origin-x origin-y]}))
 
+(defn render-shape [palette {:keys [origin color primitives]}]
+  (let [color (palette color)]
+    (map (fn [p] (assoc p
+                        :color color
+                        :origin (v2+ (p :origin [0 0]) origin)))
+         primitives)))
+
+(defn render-label [palette {:keys [origin extents color font text text-color text-align text-valign margin]}]
+  (let [color (palette color)
+        text-color (palette text-color)]
+    [{:type :rect
+      :origin origin
+      :extents extents
+      :color color}
+     (merge {:type :text
+             :font font
+             :text text
+             :color color
+             :text-color text-color}
+            (align-text text text-align text-valign margin origin extents))]))
+
+
+(defn render-rounded-button [palette {[width height] :extents
+              :keys [origin extents color font text text-color text-align text-valign margin]}]
+  (let [color (palette color)
+        text-color (palette text-color)
+        radius (/ height 2)]
+    [{:type :arc
+      :origin origin
+      :extents [radius height]
+      :radius radius
+      :center [radius radius]
+      :color color}
+     {:type :arc
+      :origin (v2+ origin [(- width radius) 0])
+      :extents [radius height]
+      :radius radius
+      :center [0 radius]
+      :color color}
+     {:type :rect
+      :origin (v2+ origin [radius 0])
+      :extents (v2+ extents [(* -2 radius) 0])
+      :color color}
+     (merge {:type :text
+             :font font
+             :text text
+             :color color
+             :text-color text-color}
+            (align-text text text-align text-valign margin (v2+ origin [radius 0]) (v2+ extents [(* -2 radius) 0])))]))
+
 
 (def ui-renderers
-  {:shape (fn [palette {:keys [origin color primitives]}]
-            (let [color (palette color)]
-              (map (fn [p] (assoc p
-                                  :color color
-                                  :origin (v2+ (p :origin [0 0]) origin)))
-                   primitives)))
-   :label (fn [palette {:keys [origin extents color font text text-color text-align text-valign margin]}]
-            (let [color (palette color)
-                  text-color (palette text-color)]
-              [{:type :rect
-                :origin origin
-                :extents extents
-                :color color}
-               (merge {:type :text
-                       :font font
-                       :text text
-                       :color color
-                       :text-color text-color}
-                      (align-text text text-align text-valign margin origin extents))]))})
+  {:shape render-shape
+   :label render-label
+   :rounded-button render-rounded-button})
 
 
 (defn mapcatv [f coll]
@@ -197,7 +241,8 @@
 
 (defn render-primitives [palette ui]
   (mapcatv (fn [elem]
-             ((ui-renderers (:type elem)) palette elem))
+             (when-let [render (ui-renderers (:type elem))]
+               (render palette elem)))
            ui))
 
 
