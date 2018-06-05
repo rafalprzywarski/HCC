@@ -63,6 +63,7 @@
     :text-color :black
     :text-align :left
     :text-valign :bottom
+    :margin 2
     :color :secondary}
    {:type :label
     :font :small
@@ -72,6 +73,7 @@
     :text-color :black
     :text-align :left
     :text-valign :center
+    :margin 2
     :color :secondary}
    {:type :label
     :font :small
@@ -81,6 +83,7 @@
     :text-color :black
     :text-align :left
     :text-valign :top
+    :margin 2
     :color :secondary}
    {:type :label
     :font :small
@@ -90,6 +93,7 @@
     :text-color :black
     :text-align :center
     :text-valign :bottom
+    :margin 2
     :color :secondary}
    {:type :label
     :font :small
@@ -99,6 +103,7 @@
     :text-color :black
     :text-align :center
     :text-valign :center
+    :margin 2
     :color :secondary}
    {:type :label
     :font :small
@@ -108,6 +113,7 @@
     :text-color :black
     :text-align :center
     :text-valign :top
+    :margin 2
     :color :secondary}
    {:type :label
     :font :small
@@ -117,6 +123,7 @@
     :text-color :black
     :text-align :right
     :text-valign :bottom
+    :margin 2
     :color :secondary}
    {:type :label
     :font :small
@@ -126,6 +133,7 @@
     :text-color :black
     :text-align :right
     :text-valign :center
+    :margin 2
     :color :secondary}
    {:type :label
     :font :small
@@ -135,21 +143,23 @@
     :text-color :black
     :text-align :right
     :text-valign :top
+    :margin 2
     :color :secondary}])
 
 
 (defn v2+ [[x1 y1] [x2 y2]] [(+ x1 x2) (+ y1 y2)])
 
 
-(defn align-text [text align valign [origin-x origin-y] [width height]]
-  (let [origin-x (cond
+(defn align-text [text align valign margin [origin-x origin-y] [width height]]
+  (let [margin (or margin 0)
+        origin-x (cond
                    (= align :center) (+ origin-x (/ width 2))
-                   (= align :right) (+ origin-x width)
-                   :else origin-x)
+                   (= align :right) (- (+ origin-x width) margin)
+                   :else (+ origin-x margin))
         origin-y (cond
                    (= valign :center) (+ origin-y (/ height 2))
-                   (= valign :top) (+ origin-y height)
-                   :else origin-y)]
+                   (= valign :top) (- (+ origin-y height) margin)
+                   :else (+ origin-y margin))]
     {:text-anchor ({:center :center, :right :right} align :left)
      :text-vanchor ({:center :center, :top :top} valign :bottom) ; TODO: use hash-set
      :origin [origin-x origin-y]}))
@@ -162,7 +172,7 @@
                                   :color color
                                   :origin (v2+ (p :origin [0 0]) origin)))
                    primitives)))
-   :label (fn [palette {:keys [origin extents color font text text-color text-align text-valign]}]
+   :label (fn [palette {:keys [origin extents color font text text-color text-align text-valign margin]}]
             (let [color (palette color)
                   text-color (palette text-color)]
               [{:type :rect
@@ -174,7 +184,7 @@
                        :text text
                        :color color
                        :text-color text-color}
-                      (align-text text text-align text-valign origin extents))]))})
+                      (align-text text text-align text-valign margin origin extents))]))})
 
 
 (defn mapcatv [f coll]
