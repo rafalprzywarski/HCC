@@ -269,6 +269,11 @@
                       tr tg tb ta
                       r g b)))})
 
+(defmacro time [expr]
+  `(let [start# (g/get-time)
+         tmp# ~expr]
+     (- (g/get-time) start#)))
+
 
 (defn render-scene! [scene]
   (doseq [elem scene]
@@ -281,10 +286,12 @@
 
 
 (defn render-for! [n]
-  (dotimes [i n]
-    (g/clear!)
-    (render-scene! (render-primitives main-palette main-ui))
-    (g/swap-buffers!)))
+  (let [t (time (dotimes [i n]
+                  (g/clear!)
+                  (render-scene! (render-primitives main-palette main-ui))
+                  (g/swap-buffers!)))]
+    (println (/ t n) "ms per frame")))
+
 
 (defn main []
    (g/initialize!)

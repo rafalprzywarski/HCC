@@ -13,6 +13,7 @@
 #include <numeric>
 #include <iostream>
 #include <unordered_map>
+#include <chrono>
 
 namespace
 {
@@ -678,6 +679,12 @@ std::int64_t get_display_height()
     if (!state)
         return 0;
     return state->display_height;
+}
+
+std::int64_t get_time()
+{
+    using namespace std::chrono;
+    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
 }

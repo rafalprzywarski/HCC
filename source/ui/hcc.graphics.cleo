@@ -20,4 +20,5 @@
   (text! "text" :int64 [:int64 :string :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
   (swap-buffers! "swap_buffers" :int64 [])
   (get-display-width "get_display_width" :int64 [])
-  (get-display-height "get_display_height" :int64 []))
+  (get-display-height "get_display_height" :int64 [])
+  (get-time "get_time" :int64 []))
