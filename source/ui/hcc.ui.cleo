@@ -270,9 +270,9 @@
                       r g b)))})
 
 (defmacro time [expr]
-  `(let [start# (g/get-time)
+  `(let [start# (get-time)
          tmp# ~expr]
-     (- (g/get-time) start#)))
+     (- (get-time) start#)))
 
 
 (defn render-scene! [scene]
@@ -290,7 +290,7 @@
                   (g/clear!)
                   (render-scene! (render-primitives main-palette main-ui))
                   (g/swap-buffers!)))]
-    (println (/ t n) "ms per frame")))
+    (println (/ t n) "ns per frame")))
 
 
 (defn main []
