@@ -294,11 +294,11 @@
 
 
 (defn main []
-   (g/initialize!)
-   (render-for! 1)
-   (println "initialized display" (g/get-display-width) "x" (g/get-display-height))
-   (reset! fonts (load-fonts))
-   (println "loaded fonts")
-   (render-for! 200)
-   (g/shutdown!)
-   (println "done"))
+  (g/initialize!)
+  (render-for! 1)
+  (println "initialized display" (g/get-display-width) "x" (g/get-display-height))
+  (reset! fonts (load-fonts))
+  (println "loaded fonts")
+  (render-for! 200)
+  (g/shutdown!)
+  (println "done"))
