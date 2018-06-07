@@ -27,12 +27,6 @@
                   :extents [370 220]
                   :center [-10 0]
                   :radius 100
-                  :inverted? :true}
-                 {:type :arc
-                  :origin [0 220]
-                  :extents [370 220]
-                  :center [380 0]
-                  :radius 100
                   :inverted? :true}]}
    {:type :shape
     :origin [20 240]
@@ -44,8 +38,9 @@
    {:type :label
     :font :small
     :text "2457-24567-246724567-24567823567-24-5672457"
-    :origin [30 400]
-    :extents [40 40]
+    :origin [180 430]
+    :extents [400 30]
+    :text-valign :center
     :text-color :black
     :color :primary}
    {:type :label
@@ -154,7 +149,17 @@
     :text-align :right
     :text-valign :bottom
     :margin 5
-    :color :primary}])
+    :color :primary}
+   {:type :top-left-swept
+    :origin [20 390]
+    :extents [160 70]
+    :inner-radius 40
+    :color :primary}
+   {:type :shape
+    :origin [20 290]
+    :color :primary
+    :primitives [{:type :rect
+                  :extents [120 100]}]}])
 
 
 (defn v2+ [[x1 y1] [x2 y2]] [(+ x1 x2) (+ y1 y2)])
@@ -225,10 +230,37 @@
             (align-text text text-align text-valign margin (v2+ origin [radius 0]) (v2+ extents [(* -2 radius) 0])))]))
 
 
+(defn render-top-left-swept [palette {[width height] :extents
+                                      :keys [origin inner-radius color]}]
+  (let [color (palette color)]
+    [{:type :arc
+      :origin origin
+      :extents [height height]
+      :radius height
+      :center [height 0]
+      :color color}
+     {:type :rect
+      :origin (v2+ origin [height 0])
+      :extents [(- width (+ height inner-radius)) height]
+      :color color}
+     {:type :rect
+      :origin (v2+ origin [(- width inner-radius) inner-radius])
+      :extents [inner-radius (- height inner-radius)]
+      :color color}
+     {:type :arc
+      :origin (v2+ origin [(- width inner-radius) 0])
+      :extents [inner-radius inner-radius]
+      :radius inner-radius
+      :center [inner-radius 0]
+      :inverted? :true
+      :color color}]))
+
+
 (def ui-renderers
   {:shape render-shape
    :label render-label
-   :rounded-button render-rounded-button})
+   :rounded-button render-rounded-button
+   :top-left-swept render-top-left-swept})
 
 
 (defn mapcatv [f coll]
