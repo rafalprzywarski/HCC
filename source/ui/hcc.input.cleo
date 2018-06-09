@@ -1,0 +1,35 @@
+(ns hcc.input)
+
+
+(defn gen-icfn [libname cname ret-type param-types]
+  (list `import-c-fn libname cname ret-type param-types))
+
+
+(defmacro defcfns [libname & decls]
+  `(do ~@(map1 (fn [decl] (list 'def (first decl) (apply* gen-icfn (conj (next decl) libname)))) decls)))
+
+
+(defcfns "Release/source/input/libhcc_input.so"
+  (initialize! "initialize" :int64 [])
+  (shutdown! "shutdown" :int64 [])
+  (has-input* "has_input" :int64 [])
+  (pop-event! "pop_event" :int64 [])
+  (get-event-type "get_event_type" :int64 [])
+  (get-event-x "get_event_x" :int64 [])
+  (get-event-y "get_event_y" :int64 []))
+
+
+(defn has-input? []
+  (not (= (has-input*) 0)))
+
+
+(defn get-event! []
+  (when (has-input?)
+    (let [event {:type ({1 :touch-down
+                         2 :touch-up
+                         3 :touch-move}
+                        (get-event-type))
+                 :x (get-event-x)
+                 :y (get-event-y)}]
+      (pop-event!)
+      event)))

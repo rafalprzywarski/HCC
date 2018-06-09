@@ -1,6 +1,9 @@
 (ns hcc.ui)
 (require 'hcc.graphics)
 (alias 'g 'hcc.graphics)
+(require 'hcc.input)
+(alias 'in 'hcc.input)
+
 
 (def fonts (atom nil))
 
@@ -317,8 +320,12 @@
                      :small (g/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)})
 
 
-(defn render-for! [n]
+(defn main-loop-for! [n]
   (let [t (time (dotimes [i n]
+                  (loop []
+                    (when-let [event (in/get-event!)]
+                      (println event)
+                      (recur)))
                   (g/clear!)
                   (render-scene! (render-primitives main-palette main-ui))
                   (g/swap-buffers!)))]
@@ -327,10 +334,12 @@
 
 (defn main []
   (g/initialize!)
-  (render-for! 1)
+  (main-loop-for! 1)
+  (in/initialize!)
   (println "initialized display" (g/get-display-width) "x" (g/get-display-height))
   (reset! fonts (load-fonts))
   (println "loaded fonts")
-  (render-for! 200)
+  (main-loop-for! 200)
+  (in/shutdown!)
   (g/shutdown!)
   (println "done"))
