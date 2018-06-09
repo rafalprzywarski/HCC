@@ -6,6 +6,7 @@
 
 
 (def fonts (atom nil))
+(def finger-position (atom nil))
 
 
 (def main-palette
@@ -16,10 +17,24 @@
    :hightlight [255 255 255]
    :text [0 0 0]})
 
+
 (def main-palette
   {:primary [255 100 72 255]
    :secondary [108 198 74 255]
    :black [0 0 0 255]})
+
+
+(defn finger-ui []
+  (when @finger-position
+    [{:type :shape
+      :origin @finger-position
+      :color :secondary
+      :primitives [{:type :arc
+                    :origin [-32 -32]
+                    :extents [64 64]
+                    :center [32 32]
+                    :radius 32}]}]))
+
 
 (def main-ui
   [{:type :shape
@@ -320,14 +335,22 @@
                      :small (g/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)})
 
 
+(defn get-event! []
+  (when-let [event (in/get-event!)]
+    (if-let [position (:position event)]
+      (assoc event :position [(position 0) (- (- (g/get-display-height) (position 1)) 1)])
+      event)))
+
+
 (defn main-loop-for! [n]
   (let [t (time (dotimes [i n]
                   (loop []
-                    (when-let [event (in/get-event!)]
-                      (println event)
+                    (when-let [event (get-event!)]
+                      (let [{:keys [type position]} event]
+                        (reset! finger-position (if (= type :touch-up) nil position)))
                       (recur)))
                   (g/clear!)
-                  (render-scene! (render-primitives main-palette main-ui))
+                  (render-scene! (render-primitives main-palette (concati main-ui (finger-ui))))
                   (g/swap-buffers!)))]
     (println (/ t n) "ns per frame")))
 

@@ -29,7 +29,6 @@
                          2 :touch-up
                          3 :touch-move}
                         (get-event-type))
-                 :x (get-event-x)
-                 :y (get-event-y)}]
+                 :position [(get-event-x) (get-event-y)]}]
       (pop-event!)
       event)))
