@@ -6,7 +6,6 @@
 
 
 (def fonts (atom nil))
-(def finger-position (atom nil))
 (def ui-state (atom nil))
 
 
@@ -24,18 +23,6 @@
    :secondary [108 198 74]
    :black [0 0 0]
    :highlight [255 255 255]})
-
-
-(defn finger-ui []
-  (when @finger-position
-    [{:type :shape
-      :origin @finger-position
-      :color :secondary
-      :primitives [{:type :arc
-                    :origin [-32 -32]
-                    :extents [64 64]
-                    :center [32 32]
-                    :radius 32}]}]))
 
 
 (def main-ui
@@ -182,7 +169,8 @@
     :text-align :right
     :text-valign :bottom
     :margin 5
-    :color :primary}
+    :color :primary
+    :on-click (fn [] (println "click"))}
    {:type :top-left-swept
     :origin [20 390]
     :extents [160 70]
@@ -221,8 +209,8 @@
 
 (defn render-label [palette
                     {:keys [id origin extents color font text text-color text-align text-valign margin]}
-                    {highlighted :highlighted}]
-  (let [color (if (and id (= id highlighted)) :highlight color)
+                    {pressed :pressed}]
+  (let [color (if (and id (= id pressed)) :highlight color)
         color (palette color)
         text-color (palette text-color)]
     [{:type :rect
@@ -240,8 +228,8 @@
 (defn render-rounded-button [palette
                              {[width height] :extents
                               :keys [id origin extents color font text text-color text-align text-valign margin]}
-                             {highlighted :highlighted}]
-  (let [color (if (and id (= id highlighted)) :highlight color)
+                             {pressed :pressed}]
+  (let [color (if (and id (= id pressed)) :highlight color)
         color (palette color)
         text-color (palette text-color)
         radius (/ height 2)]
@@ -365,37 +353,47 @@
       event)))
 
 
-(defn find-highlighted-id [ui [pos-x pos-y]]
+(defn find-button-by-pos [ui [pos-x pos-y]]
   (loop [s (seq ui)]
     (when s
-      (let [{:keys [id type origin extents]} (first s)
+      (let [{:keys [type origin extents] :as button} (first s)
             [origin-x origin-y] origin
             [width height] extents]
         (if (and (= type :rounded-button)
                  (not (or (< pos-x origin-x) (< pos-y origin-y)))
                  (< pos-x (+ origin-x width)) (< pos-y (+ origin-y height)))
-          id
+          button
           (recur (next s)))))))
 
 
-(defn update-ui-state [state ui event]
+(defn handle-ui-event [state ui event]
   (let [{:keys [type position]} event]
-    (if (= type :touch-up)
-      (dissoc state :highlighted)
-      (let [id (find-highlighted-id ui position)]
-        (assoc state :highlighted id)))))
+    (cond
+      (= type :touch-up) (let [button (find-button-by-pos ui position)]
+                           (if (= (:id button) (:pressed state))
+                             (if-let [on-click (:on-click button)]
+                               (on-click)))
+                           (dissoc state :pressed))
+      (= type :touch-down) (let [button (find-button-by-pos ui position)]
+                             (assoc state :pressed (:id button)))
+      (= type :touch-move) (if (not (= (:id (find-button-by-pos ui position)) (:pressed state)))
+                             (dissoc state :pressed)
+                             state))))
+
+
+(defn handle-ui-input []
+  (loop []
+    (when-let [event (get-event!)]
+      (let [{:keys [type position]} event]
+        (swap! ui-state handle-ui-event main-ui event))
+      (recur))))
 
 
 (defn main-loop-for! [n]
   (let [t (time (dotimes [i n]
-                  (loop []
-                    (when-let [event (get-event!)]
-                      (let [{:keys [type position]} event]
-                        (reset! finger-position (if (= type :touch-up) nil position))
-                        (swap! ui-state update-ui-state main-ui event))
-                      (recur)))
+                  (handle-ui-input)
                   (g/clear!)
-                  (render-scene! (render-primitives main-palette (concati main-ui (finger-ui)) @ui-state))
+                  (render-scene! (render-primitives main-palette main-ui @ui-state))
                   (g/swap-buffers!)))]
     (println (/ t n) "ns per frame")))
 
