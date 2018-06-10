@@ -19,9 +19,9 @@
 
 
 (def main-palette
-  {:primary [255 100 72 255]
-   :secondary [108 198 74 255]
-   :black [0 0 0 255]})
+  {:primary [255 100 72]
+   :secondary [108 198 74]
+   :black [0 0 0]})
 
 
 (defn finger-ui []
@@ -316,7 +316,7 @@
                       text
                       origin-x origin-y
                       ({:center 0, :right 1} text-anchor -1) ({:center 0, :top 1} text-vanchor -1)
-                      tr tg tb ta
+                      tr tg tb (or ta 255)
                       r g b)))})
 
 (defmacro time [expr]
