@@ -7,6 +7,7 @@
 
 (def fonts (atom nil))
 (def finger-position (atom nil))
+(def ui-state (atom nil))
 
 
 (def main-palette
@@ -14,14 +15,15 @@
    :secondary [255 100 72]
    :tertiary [255 180 72]
    :quateriary [65 229 121]
-   :hightlight [255 255 255]
+   :highlight [255 255 255]
    :text [0 0 0]})
 
 
 (def main-palette
   {:primary [255 100 72]
    :secondary [108 198 74]
-   :black [0 0 0]})
+   :black [0 0 0]
+   :highlight [255 255 255]})
 
 
 (defn finger-ui []
@@ -148,7 +150,8 @@
     :text-valign :center
     :margin 2
     :color :secondary}
-   {:type :label
+   {:id :sample-button
+    :type :label
     :font :small
     :text "[right-top]"
     :origin [240 190]
@@ -158,10 +161,22 @@
     :text-valign :top
     :margin 2
     :color :secondary}
-   {:type :rounded-button
+   {:id :sample-button
+    :type :rounded-button
     :font :small
     :text "742-5625"
-    :origin [400 110]
+    :origin [400 80]
+    :extents [200 60]
+    :text-color :black
+    :text-align :right
+    :text-valign :bottom
+    :margin 5
+    :color :primary}
+   {:id :sample-button2
+    :type :rounded-button
+    :font :small
+    :text "226-7322"
+    :origin [400 150]
     :extents [200 60]
     :text-color :black
     :text-align :right
@@ -197,15 +212,18 @@
      :text-vanchor ({:center :center, :top :top} valign :bottom) ; TODO: use hash-set
      :origin [origin-x origin-y]}))
 
-(defn render-shape [palette {:keys [origin color primitives]}]
+(defn render-shape [palette {:keys [origin color primitives]} state]
   (let [color (palette color)]
     (map (fn [p] (assoc p
                         :color color
                         :origin (v2+ (p :origin [0 0]) origin)))
          primitives)))
 
-(defn render-label [palette {:keys [origin extents color font text text-color text-align text-valign margin]}]
-  (let [color (palette color)
+(defn render-label [palette
+                    {:keys [id origin extents color font text text-color text-align text-valign margin]}
+                    {highlighted :highlighted}]
+  (let [color (if (and id (= id highlighted)) :highlight color)
+        color (palette color)
         text-color (palette text-color)]
     [{:type :rect
       :origin origin
@@ -219,9 +237,12 @@
             (align-text text text-align text-valign margin origin extents))]))
 
 
-(defn render-rounded-button [palette {[width height] :extents
-              :keys [origin extents color font text text-color text-align text-valign margin]}]
-  (let [color (palette color)
+(defn render-rounded-button [palette
+                             {[width height] :extents
+                              :keys [id origin extents color font text text-color text-align text-valign margin]}
+                             {highlighted :highlighted}]
+  (let [color (if (and id (= id highlighted)) :highlight color)
+        color (palette color)
         text-color (palette text-color)
         radius (/ height 2)]
     [{:type :arc
@@ -248,8 +269,10 @@
             (align-text text text-align text-valign margin (v2+ origin [radius 0]) (v2+ extents [(* -2 radius) 0])))]))
 
 
-(defn render-top-left-swept [palette {[width height] :extents
-                                      :keys [origin inner-radius color]}]
+(defn render-top-left-swept [palette
+                             {[width height] :extents
+                              :keys [origin inner-radius color]}
+                             state]
   (let [color (palette color)]
     [{:type :arc
       :origin origin
@@ -289,10 +312,10 @@
       out)))
 
 
-(defn render-primitives [palette ui]
+(defn render-primitives [palette ui state]
   (mapcatv (fn [elem]
              (when-let [render (ui-renderers (:type elem))]
-               (render palette elem)))
+               (render palette elem state)))
            ui))
 
 
@@ -342,15 +365,37 @@
       event)))
 
 
+(defn find-highlighted-id [ui [pos-x pos-y]]
+  (loop [s (seq ui)]
+    (when s
+      (let [{:keys [id type origin extents]} (first s)
+            [origin-x origin-y] origin
+            [width height] extents]
+        (if (and (= type :rounded-button)
+                 (not (or (< pos-x origin-x) (< pos-y origin-y)))
+                 (< pos-x (+ origin-x width)) (< pos-y (+ origin-y height)))
+          id
+          (recur (next s)))))))
+
+
+(defn update-ui-state [state ui event]
+  (let [{:keys [type position]} event]
+    (if (= type :touch-up)
+      (dissoc state :highlighted)
+      (let [id (find-highlighted-id ui position)]
+        (assoc state :highlighted id)))))
+
+
 (defn main-loop-for! [n]
   (let [t (time (dotimes [i n]
                   (loop []
                     (when-let [event (get-event!)]
                       (let [{:keys [type position]} event]
-                        (reset! finger-position (if (= type :touch-up) nil position)))
+                        (reset! finger-position (if (= type :touch-up) nil position))
+                        (swap! ui-state update-ui-state main-ui event))
                       (recur)))
                   (g/clear!)
-                  (render-scene! (render-primitives main-palette (concati main-ui (finger-ui))))
+                  (render-scene! (render-primitives main-palette (concati main-ui (finger-ui)) @ui-state))
                   (g/swap-buffers!)))]
     (println (/ t n) "ns per frame")))
 
