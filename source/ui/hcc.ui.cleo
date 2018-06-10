@@ -7,191 +7,6 @@
 
 (def fonts (atom nil))
 (def ui-state (atom nil))
-(def counter (atom 0))
-
-
-(def main-palette
-  {:primary [74 149 221]
-   :secondary [255 100 72]
-   :tertiary [255 180 72]
-   :quateriary [65 229 121]
-   :highlight [255 255 255]
-   :text [0 0 0]})
-
-
-(def main-palette
-  {:primary [255 100 72]
-   :secondary [108 198 74]
-   :black [0 0 0]
-   :highlight [255 255 255]})
-
-
-(defn main-ui []
-  [{:type :shape
-    :origin [20 20]
-    :color :primary
-    :primitives [{:type :arc
-                  :origin [390 220]
-                  :extents [370 220]
-                  :center [-10 0]
-                  :radius 100
-                  :inverted? :true}]}
-   {:type :shape
-    :origin [20 240]
-    :color (if (:pressed @ui-state) :highlight :secondary)
-    :primitives [{:type :arc
-                  :extents [760 220]
-                  :center [380 0]
-                  :radius 80}]}
-   {:type :label
-    :font :small
-    :text "2457-24567-246724567-24567823567-24-5672457"
-    :origin [180 430]
-    :extents [400 30]
-    :text-valign :center
-    :text-color :black
-    :color :primary}
-   {:type :label
-    :font :big
-    :text "DEVICE CONTROL CENTER             71286"
-    :origin [30 15]
-    :extents [10 10]
-    :text-color :primary
-    :color :black}
-   {:type :label
-    :font :small
-    :text "[left-bottom]"
-    :origin [20 90]
-    :extents [100 40]
-    :text-color :black
-    :text-align :left
-    :text-valign :bottom
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :small
-    :text "[left-center]"
-    :origin [20 140]
-    :extents [100 40]
-    :text-color :black
-    :text-align :left
-    :text-valign :center
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :small
-    :text "[left-top]"
-    :origin [20 190]
-    :extents [100 40]
-    :text-color :black
-    :text-align :left
-    :text-valign :top
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :small
-    :text "[center-bottom]"
-    :origin [130 90]
-    :extents [100 40]
-    :text-color :black
-    :text-align :center
-    :text-valign :bottom
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :small
-    :text "[center-center]"
-    :origin [130 140]
-    :extents [100 40]
-    :text-color :black
-    :text-align :center
-    :text-valign :center
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :small
-    :text "[center-top]"
-    :origin [130 190]
-    :extents [100 40]
-    :text-color :black
-    :text-align :center
-    :text-valign :top
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :small
-    :text "[right-bottom]"
-    :origin [240 90]
-    :extents [100 40]
-    :text-color :black
-    :text-align :right
-    :text-valign :bottom
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :small
-    :text "[right-center]"
-    :origin [240 140]
-    :extents [100 40]
-    :text-color :black
-    :text-align :right
-    :text-valign :center
-    :margin 2
-    :color :secondary}
-   {:id :sample-button
-    :type :label
-    :font :small
-    :text "[right-top]"
-    :origin [240 190]
-    :extents [100 40]
-    :text-color :black
-    :text-align :right
-    :text-valign :top
-    :margin 2
-    :color :secondary}
-   {:id :sample-button
-    :type :rounded-button
-    :font :small
-    :text "742-5625"
-    :origin [400 80]
-    :extents [200 60]
-    :text-color :black
-    :text-align :right
-    :text-valign :bottom
-    :margin 5
-    :color :primary
-    :on-click (fn [] (swap! counter dec))}
-   {:id :sample-button2
-    :type :rounded-button
-    :font :small
-    :text "226-7322"
-    :origin [400 150]
-    :extents [200 60]
-    :text-color :black
-    :text-align :right
-    :text-valign :bottom
-    :margin 5
-    :color :primary
-    :on-click (fn [] (swap! counter inc))}
-   {:type :top-left-swept
-    :origin [20 390]
-    :extents [160 70]
-    :inner-radius 40
-    :color :primary}
-   {:type :shape
-    :origin [20 290]
-    :color :primary
-    :primitives [{:type :rect
-                  :extents [120 100]}]}
-   {:type :label
-    :origin [370 240]
-    :extents [60 60]
-    :color (if (:pressed @ui-state) :highlight :secondary)
-    :text-color :black
-    :text (str @counter)
-    :font :big
-    :text-align :center
-    :text-valign :center}])
 
 
 (defn v2+ [[x1 y1] [x2 y2]] [(+ x1 x2) (+ y1 y2)])
@@ -211,12 +26,14 @@
      :text-vanchor ({:center :center, :top :top} valign :bottom) ; TODO: use hash-set
      :origin [origin-x origin-y]}))
 
+
 (defn render-shape [palette {:keys [origin color primitives]} state]
   (let [color (palette color)]
     (map (fn [p] (assoc p
                         :color color
                         :origin (v2+ (p :origin [0 0]) origin)))
          primitives)))
+
 
 (defn render-label [palette
                     {:keys [id origin extents color font text text-color text-align text-valign margin]}
@@ -341,20 +158,11 @@
                       tr tg tb (or ta 255)
                       r g b)))})
 
-(defmacro time [expr]
-  `(let [start# (get-time)
-         tmp# ~expr]
-     (- (get-time) start#)))
-
 
 (defn render-scene! [scene]
   (doseq [elem scene]
     ((renderers (:type elem)) elem))
   (g/render!))
-
-
-(defn load-fonts [] {:big (g/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 32)
-                     :small (g/load-font "/usr/share/fonts/truetype/tt0105m.ttf" 11)})
 
 
 (defn get-event! []
@@ -406,26 +214,29 @@
   (g/swap-buffers!))
 
 
-(defn step-ui! [palette ui]
+(defn step! [palette ui]
   (if-let [rendered (:rendered @ui-state)]
     (handle-ui-input! rendered))
   (let [rendered (ui)]
     (swap! ui-state assoc :rendered rendered)
     (render-ui! palette rendered)))
 
-(defn main-loop-for! [n]
-  (let [t (time (dotimes [i n] (step-ui! main-palette main-ui)))]
-    (println (/ t n) "ns per frame")))
+
+(defn load-fonts! [fs]
+  (reset! fonts (reduce1 (fn [out {:keys [name path size]}]
+                           (assoc out name (g/load-font path size)))
+                         {}
+                         fs))
+  (println "loaded" (count @fonts) "fonts"))
 
 
-(defn main []
+(defn initialize! []
   (g/initialize!)
-  (main-loop-for! 1)
-  (in/initialize!)
   (println "initialized display" (g/get-display-width) "x" (g/get-display-height))
-  (reset! fonts (load-fonts))
-  (println "loaded fonts")
-  (main-loop-for! 200)
+  (in/initialize!))
+
+
+(defn shutdown! []
   (in/shutdown!)
   (g/shutdown!)
   (println "done"))

@@ -13,4 +13,4 @@ ssh ${RPI_ADDRESS} "mkdir -p ${DEST_DIR}"
 rsync -av --delete --exclude xcode --exclude Debug --exclude Release * ${RPI_ADDRESS}:${DEST_DIR}/
 
 echo "running..."
-ssh ${RPI_ADDRESS} "cd ${DEST_DIR}; cleo source/ui hcc.ui"
+ssh ${RPI_ADDRESS} "cd ${DEST_DIR}; cleo source/ui hcc.app"
