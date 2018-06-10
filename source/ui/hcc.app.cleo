@@ -27,6 +27,14 @@
    :highlight [255 255 255]})
 
 
+(defn inc-counter []
+  (swap! counter inc))
+
+
+(defn dec-counter []
+  (swap! counter dec))
+
+
 (defn main-ui []
   [{:type :shape
     :origin [20 20]
@@ -161,7 +169,7 @@
     :text-valign :bottom
     :margin 5
     :color :primary
-    :on-click (fn [] (swap! counter dec))}
+    :on-click dec-counter}
    {:id :sample-button2
     :type :rounded-button
     :font :small
@@ -173,7 +181,7 @@
     :text-valign :bottom
     :margin 5
     :color :primary
-    :on-click (fn [] (swap! counter inc))}
+    :on-click inc-counter}
    {:type :top-left-swept
     :origin [20 390]
     :extents [160 70]
