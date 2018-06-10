@@ -7,6 +7,7 @@
 
 (def fonts (atom nil))
 (def ui-state (atom nil))
+(def counter (atom 0))
 
 
 (def main-palette
@@ -25,7 +26,7 @@
    :highlight [255 255 255]})
 
 
-(def main-ui
+(defn main-ui []
   [{:type :shape
     :origin [20 20]
     :color :primary
@@ -37,7 +38,7 @@
                   :inverted? :true}]}
    {:type :shape
     :origin [20 240]
-    :color :secondary
+    :color (if (:pressed @ui-state) :highlight :secondary)
     :primitives [{:type :arc
                   :extents [760 220]
                   :center [380 0]
@@ -158,7 +159,8 @@
     :text-align :right
     :text-valign :bottom
     :margin 5
-    :color :primary}
+    :color :primary
+    :on-click (fn [] (swap! counter dec))}
    {:id :sample-button2
     :type :rounded-button
     :font :small
@@ -170,7 +172,7 @@
     :text-valign :bottom
     :margin 5
     :color :primary
-    :on-click (fn [] (println "click"))}
+    :on-click (fn [] (swap! counter inc))}
    {:type :top-left-swept
     :origin [20 390]
     :extents [160 70]
@@ -180,7 +182,16 @@
     :origin [20 290]
     :color :primary
     :primitives [{:type :rect
-                  :extents [120 100]}]}])
+                  :extents [120 100]}]}
+   {:type :label
+    :origin [370 240]
+    :extents [60 60]
+    :color (if (:pressed @ui-state) :highlight :secondary)
+    :text-color :black
+    :text (str @counter)
+    :font :big
+    :text-align :center
+    :text-valign :center}])
 
 
 (defn v2+ [[x1 y1] [x2 y2]] [(+ x1 x2) (+ y1 y2)])
@@ -366,7 +377,7 @@
           (recur (next s)))))))
 
 
-(defn handle-ui-event [state ui event]
+(defn handle-ui-event! [state ui event]
   (let [{:keys [type position]} event]
     (cond
       (= type :touch-up) (let [button (find-button-by-pos ui position)]
@@ -381,20 +392,29 @@
                              state))))
 
 
-(defn handle-ui-input []
+(defn handle-ui-input! [ui]
   (loop []
     (when-let [event (get-event!)]
       (let [{:keys [type position]} event]
-        (swap! ui-state handle-ui-event main-ui event))
+        (swap! ui-state handle-ui-event! ui event))
       (recur))))
 
 
+(defn render-ui! [palette ui]
+  (g/clear!)
+  (render-scene! (render-primitives palette ui @ui-state))
+  (g/swap-buffers!))
+
+
+(defn step-ui! [palette ui]
+  (if-let [rendered (:rendered @ui-state)]
+    (handle-ui-input! rendered))
+  (let [rendered (ui)]
+    (swap! ui-state assoc :rendered rendered)
+    (render-ui! palette rendered)))
+
 (defn main-loop-for! [n]
-  (let [t (time (dotimes [i n]
-                  (handle-ui-input)
-                  (g/clear!)
-                  (render-scene! (render-primitives main-palette main-ui @ui-state))
-                  (g/swap-buffers!)))]
+  (let [t (time (dotimes [i n] (step-ui! main-palette main-ui)))]
     (println (/ t n) "ns per frame")))
 
 
