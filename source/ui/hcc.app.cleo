@@ -3,7 +3,7 @@
 (alias 'ui 'hcc.ui)
 
 
-(def counter (atom 0))
+(def app-state (atom {:counter 0}))
 
 
 (def fonts
@@ -27,15 +27,15 @@
    :highlight [255 255 255]})
 
 
-(defn inc-counter []
-  (swap! counter inc))
+(defn inc-counter [state]
+  (update state :counter inc))
 
 
-(defn dec-counter []
-  (swap! counter dec))
+(defn dec-counter [state]
+  (update state :counter dec))
 
 
-(defn main-ui []
+(defn main-ui [state]
   [{:type :shape
     :origin [20 20]
     :color :primary
@@ -197,7 +197,7 @@
     :extents [60 60]
     :color (if (:pressed @ui/ui-state) :highlight :secondary)
     :text-color :black
-    :text (str @counter)
+    :text (str (:counter state))
     :font :big
     :text-align :center
     :text-valign :center}])
@@ -210,7 +210,8 @@
 
 
 (defn main-loop-for! [n]
-  (let [t (time (dotimes [i n] (ui/step! main-palette main-ui)))]
+  (let [t (time (dotimes [i n]
+                  (reset! app-state (ui/step! main-palette main-ui @app-state))))]
     (println (/ t n) "ns per frame")))
 
 

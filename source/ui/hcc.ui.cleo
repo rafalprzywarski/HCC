@@ -185,13 +185,22 @@
           (recur (next s)))))))
 
 
-(defn handle-ui-event! [state ui event]
+(defn handle-app-event [state ui event app-state]
+  (let [{:keys [type position]} event]
+    (if (= type :touch-up)
+      (let [button (find-button-by-pos ui position)]
+        (if (= (:id button) (:pressed state))
+          (if-let [on-click (:on-click button)]
+            (on-click app-state)
+            app-state)
+          app-state))
+      app-state)))
+
+
+(defn handle-ui-event [state ui event]
   (let [{:keys [type position]} event]
     (cond
       (= type :touch-up) (let [button (find-button-by-pos ui position)]
-                           (if (= (:id button) (:pressed state))
-                             (if-let [on-click (:on-click button)]
-                               (on-click)))
                            (dissoc state :pressed))
       (= type :touch-down) (let [button (find-button-by-pos ui position)]
                              (assoc state :pressed (:id button)))
@@ -200,12 +209,14 @@
                              state))))
 
 
-(defn handle-ui-input! [ui]
-  (loop []
-    (when-let [event (get-event!)]
-      (let [{:keys [type position]} event]
-        (swap! ui-state handle-ui-event! ui event))
-      (recur))))
+(defn handle-ui-input! [ui app-state]
+  (loop [app-state app-state]
+    (if-let [event (get-event!)]
+      (let [{:keys [type position]} event
+            new-app-state (handle-app-event @ui-state ui event app-state)]
+        (swap! ui-state handle-ui-event ui event)
+        (recur new-app-state))
+      app-state)))
 
 
 (defn render-ui! [palette ui]
@@ -214,12 +225,14 @@
   (g/swap-buffers!))
 
 
-(defn step! [palette ui]
-  (if-let [rendered (:rendered @ui-state)]
-    (handle-ui-input! rendered))
-  (let [rendered (ui)]
-    (swap! ui-state assoc :rendered rendered)
-    (render-ui! palette rendered)))
+(defn step! [palette ui app-state]
+  (let [app-state (if-let [rendered (:rendered @ui-state)]
+                    (handle-ui-input! rendered app-state)
+                    app-state)]
+    (let [rendered (ui app-state)]
+      (swap! ui-state assoc :rendered rendered)
+      (render-ui! palette rendered)
+      app-state)))
 
 
 (defn load-fonts! [fs]
