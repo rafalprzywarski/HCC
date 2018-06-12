@@ -35,6 +35,14 @@
   (update state :counter dec))
 
 
+(defn hightlight-counter [state]
+  (assoc state :counter-highlight :true))
+
+
+(defn dim-counter [state]
+  (dissoc state :counter-highlight))
+
+
 (defn main-ui [state]
   [{:type :shape
     :origin [20 20]
@@ -47,7 +55,7 @@
                   :inverted? :true}]}
    {:type :shape
     :origin [20 240]
-    :color (if (:pressed @ui/ui-state) :highlight :secondary)
+    :color (if (:counter-highlight state) :highlight :secondary)
     :primitives [{:type :arc
                   :extents [760 220]
                   :center [380 0]
@@ -169,6 +177,9 @@
     :text-valign :bottom
     :margin 5
     :color :primary
+    :on-touch-down hightlight-counter
+    :on-touch-lost dim-counter
+    :on-touch-up dim-counter
     :on-click dec-counter}
    {:id :sample-button2
     :type :rounded-button
@@ -181,6 +192,9 @@
     :text-valign :bottom
     :margin 5
     :color :primary
+    :on-touch-down hightlight-counter
+    :on-touch-lost dim-counter
+    :on-touch-up dim-counter
     :on-click inc-counter}
    {:type :top-left-swept
     :origin [20 390]
@@ -195,7 +209,7 @@
    {:type :label
     :origin [370 240]
     :extents [60 60]
-    :color (if (:pressed @ui/ui-state) :highlight :secondary)
+    :color (if (:counter-highlight state) :highlight :secondary)
     :text-color :black
     :text (str (:counter state))
     :font :big
