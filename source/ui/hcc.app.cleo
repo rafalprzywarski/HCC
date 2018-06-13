@@ -167,7 +167,7 @@
     :margin 2
     :color :secondary}
    {:id :sample-button
-    :type :rounded-button
+    :type :button
     :font :small
     :text "742-5625"
     :origin [400 80]
@@ -182,7 +182,8 @@
     :on-touch-up dim-counter
     :on-click dec-counter}
    {:id :sample-button2
-    :type :rounded-button
+    :type :button
+    :button-style :rounded
     :font :small
     :text "226-7322"
     :origin [400 150]

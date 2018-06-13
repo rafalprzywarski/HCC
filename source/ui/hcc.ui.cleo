@@ -53,36 +53,47 @@
             (align-text text text-align text-valign margin origin extents))]))
 
 
-(defn render-rounded-button [palette
+(defn render-button [palette
                              {[width height] :extents
-                              :keys [id origin extents color font text text-color text-align text-valign margin]}
+                              :keys [id origin extents color font text text-color text-align text-valign margin button-style]}
                              {{pressed-id :id} :pressed}]
   (let [color (if (and id (= id pressed-id)) :highlight color)
         color (palette color)
-        text-color (palette text-color)
-        radius (/ height 2)]
-    [{:type :arc
-      :origin origin
-      :extents [radius height]
-      :radius radius
-      :center [radius radius]
-      :color color}
-     {:type :arc
-      :origin (v2+ origin [(- width radius) 0])
-      :extents [radius height]
-      :radius radius
-      :center [0 radius]
-      :color color}
-     {:type :rect
-      :origin (v2+ origin [radius 0])
-      :extents (v2+ extents [(* -2 radius) 0])
-      :color color}
-     (merge {:type :text
-             :font font
-             :text text
-             :color color
-             :text-color text-color}
-            (align-text text text-align text-valign margin (v2+ origin [radius 0]) (v2+ extents [(* -2 radius) 0])))]))
+        text-color (palette text-color)]
+    (if (= button-style :rounded)
+      (let [radius (/ height 2)]
+        [{:type :arc
+          :origin origin
+          :extents [radius height]
+          :radius radius
+          :center [radius radius]
+          :color color}
+         {:type :arc
+          :origin (v2+ origin [(- width radius) 0])
+          :extents [radius height]
+          :radius radius
+          :center [0 radius]
+          :color color}
+         {:type :rect
+          :origin (v2+ origin [radius 0])
+          :extents (v2+ extents [(* -2 radius) 0])
+          :color color}
+         (merge {:type :text
+                 :font font
+                 :text text
+                 :color color
+                 :text-color text-color}
+                (align-text text text-align text-valign margin (v2+ origin [radius 0]) (v2+ extents [(* -2 radius) 0])))])
+      [{:type :rect
+        :origin origin
+        :extents extents
+        :color color}
+       (merge {:type :text
+               :font font
+               :text text
+               :color color
+               :text-color text-color}
+              (align-text text text-align text-valign margin origin extents))])))
 
 
 (defn render-top-left-swept [palette
@@ -116,7 +127,7 @@
 (def ui-renderers
   {:shape render-shape
    :label render-label
-   :rounded-button render-rounded-button
+   :button render-button
    :top-left-swept render-top-left-swept})
 
 
@@ -178,7 +189,7 @@
       (let [{:keys [type origin extents] :as button} (first s)
             [origin-x origin-y] origin
             [width height] extents]
-        (if (and (= type :rounded-button)
+        (if (and (= type :button)
                  (not (or (< pos-x origin-x) (< pos-y origin-y)))
                  (< pos-x (+ origin-x width)) (< pos-y (+ origin-y height)))
           button
