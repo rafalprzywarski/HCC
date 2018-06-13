@@ -37,7 +37,7 @@
 
 (defn render-label [palette
                     {:keys [id origin extents color font text text-color text-align text-valign margin]}
-                    {{pressed-id :id} :pressed}]
+                    {pressed-id :pressed}]
   (let [color (if (and id (= id pressed-id)) :highlight color)
         color (palette color)
         text-color (palette text-color)]
@@ -56,7 +56,7 @@
 (defn render-button [palette
                              {[width height] :extents
                               :keys [id origin extents color font text text-color text-align text-valign margin button-style]}
-                             {{pressed-id :id} :pressed}]
+                             {pressed-id :pressed}]
   (let [color (if (and id (= id pressed-id)) :highlight color)
         color (palette color)
         text-color (palette text-color)]
@@ -206,14 +206,14 @@
   (let [{:keys [type position]} event]
     (cond
         (= type :touch-up) (let [button (find-button-by-pos ui position)]
-                             (if (= button (:pressed state))
+                             (if (= (:id button) (:pressed state))
                                (trigger-event button :on-click (trigger-event button :on-touch-up app-state))
                                app-state))
         (= type :touch-down) (let [button (find-button-by-pos ui position)]
                                (trigger-event button :on-touch-down app-state))
         (= type :touch-move) (let [button (find-button-by-pos ui position)]
-                               (if (not (= button (:pressed state)))
-                                 (trigger-event (:pressed state) :on-touch-lost app-state)
+                               (if (not (= (:id button) (:pressed state)))
+                                 (trigger-event (get (:indexed state) (:pressed state)) :on-touch-lost app-state)
                                  app-state))
         :else app-state)))
 
@@ -224,8 +224,8 @@
       (= type :touch-up) (let [button (find-button-by-pos ui position)]
                            (dissoc state :pressed))
       (= type :touch-down) (let [button (find-button-by-pos ui position)]
-                             (assoc state :pressed button))
-      (= type :touch-move) (if (not (= (find-button-by-pos ui position) (:pressed state)))
+                             (assoc state :pressed (:id button)))
+      (= type :touch-move) (if (not (= (:id (find-button-by-pos ui position)) (:pressed state)))
                              (dissoc state :pressed)
                              state)
       :else state)))
@@ -247,12 +247,17 @@
   (g/swap-buffers!))
 
 
+(defn index-elems [elems]
+  (reduce1 (fn [indexed elem] (assoc indexed (:id elem) elem)) {} (seq (filter :id elems))))
+
+
 (defn step! [palette ui app-state]
   (let [app-state (if-let [rendered (:rendered @ui-state)]
                     (handle-ui-input! rendered app-state)
                     app-state)]
-    (let [rendered (ui app-state)]
-      (swap! ui-state assoc :rendered rendered)
+    (let [rendered (ui app-state)
+          indexed (index-elems rendered)]
+      (swap! ui-state (fn [state] (assoc state :rendered rendered :indexed indexed)))
       (render-ui! palette rendered)
       app-state)))
 
