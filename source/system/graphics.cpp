@@ -431,7 +431,7 @@ std::int64_t text_width(const Font& font, const char *text)
 extern "C"
 {
 
-std::int64_t initialize()
+std::int64_t initialize_graphics()
 {
     std::unique_ptr<State> state{new State};
     bcm_host_init();
@@ -478,7 +478,7 @@ std::int64_t initialize()
     return 0;
 }
 
-std::int64_t shutdown()
+std::int64_t shutdown_graphics()
 {
     if (!state)
         return 0;

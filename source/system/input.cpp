@@ -78,7 +78,7 @@ void poll()
 extern "C"
 {
 
-std::int64_t initialize()
+std::int64_t initialize_input()
 {
     state = new State;
     state->fd = open("/dev/input/event0", O_RDONLY);
@@ -87,7 +87,7 @@ std::int64_t initialize()
     return 0;
 }
 
-std::int64_t shutdown()
+std::int64_t shutdown_input()
 {
     if (!state)
         return 0;

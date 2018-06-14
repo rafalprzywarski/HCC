@@ -1,8 +1,6 @@
 (ns hcc.ui)
-(require 'hcc.graphics)
-(alias 'g 'hcc.graphics)
-(require 'hcc.input)
-(alias 'in 'hcc.input)
+(require 'hcc.system)
+(alias 'si 'hcc.system)
 
 
 (def fonts (atom nil))
@@ -152,34 +150,34 @@
               [r g b] :color
               [center-x center-y] :center
               :keys [radius inverted?]}]
-          (g/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
+          (si/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
    :rect (fn [{[origin-x origin-y] :origin
                [width height] :extents
                [r g b] :color}]
-           (g/rect! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b))
+           (si/rect! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b))
    :text (fn [{[origin-x origin-y] :origin
                [tr tg tb ta] :text-color
                [r g b] :color
                :keys [font text text-anchor text-vanchor]}]
            (if @fonts
-             (g/text! (@fonts font)
-                      text
-                      origin-x origin-y
-                      ({:center 0, :right 1} text-anchor -1) ({:center 0, :top 1} text-vanchor -1)
-                      tr tg tb (or ta 255)
-                      r g b)))})
+             (si/text! (@fonts font)
+                       text
+                       origin-x origin-y
+                       ({:center 0, :right 1} text-anchor -1) ({:center 0, :top 1} text-vanchor -1)
+                       tr tg tb (or ta 255)
+                       r g b)))})
 
 
 (defn render-scene! [scene]
   (doseq [elem scene]
     ((renderers (:type elem)) elem))
-  (g/render!))
+  (si/render!))
 
 
 (defn get-event! []
-  (when-let [event (in/get-event!)]
+  (when-let [event (si/get-event!)]
     (if-let [position (:position event)]
-      (assoc event :position [(position 0) (- (- (g/get-display-height) (position 1)) 1)])
+      (assoc event :position [(position 0) (- (- (si/get-display-height) (position 1)) 1)])
       event)))
 
 
@@ -242,9 +240,9 @@
 
 
 (defn render-ui! [palette ui]
-  (g/clear!)
+  (si/clear!)
   (render-scene! (render-primitives palette ui @ui-state))
-  (g/swap-buffers!))
+  (si/swap-buffers!))
 
 
 (defn index-elems [elems]
@@ -264,19 +262,17 @@
 
 (defn load-fonts! [fs]
   (reset! fonts (reduce1 (fn [out {:keys [name path size]}]
-                           (assoc out name (g/load-font path size)))
+                           (assoc out name (si/load-font path size)))
                          {}
                          fs))
   (println "loaded" (count @fonts) "fonts"))
 
 
 (defn initialize! []
-  (g/initialize!)
-  (println "initialized display" (g/get-display-width) "x" (g/get-display-height))
-  (in/initialize!))
+  (si/initialize!)
+  (println "initialized display" (si/get-display-width) "x" (si/get-display-height)))
 
 
 (defn shutdown! []
-  (in/shutdown!)
-  (g/shutdown!)
+  (si/shutdown!)
   (println "done"))

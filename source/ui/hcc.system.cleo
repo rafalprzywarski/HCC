@@ -1,4 +1,4 @@
-(ns hcc.input)
+(ns hcc.system)
 
 
 (defn gen-icfn [libname cname ret-type param-types]
@@ -9,9 +9,18 @@
   `(do ~@(map1 (fn [decl] (list 'def (first decl) (apply* gen-icfn (conj (next decl) libname)))) decls)))
 
 
-(defcfns "Release/source/input/libhcc_input.so"
+(defcfns "Release/source/system/libhcc_system.so"
   (initialize! "initialize" :int64 [])
   (shutdown! "shutdown" :int64 [])
+  (clear! "clear" :int64 [])
+  (render! "render" :int64 [])
+  (arc! "arc" :int64 [:int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
+  (rect! "rect" :int64 [:int64 :int64 :int64 :int64 :int64 :int64 :int64])
+  (load-font "load_font" :int64 [:string :int64])
+  (text! "text" :int64 [:int64 :string :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
+  (swap-buffers! "swap_buffers" :int64 [])
+  (get-display-width "get_display_width" :int64 [])
+  (get-display-height "get_display_height" :int64 [])
   (has-input* "has_input" :int64 [])
   (pop-event! "pop_event" :int64 [])
   (get-event-type "get_event_type" :int64 [])
