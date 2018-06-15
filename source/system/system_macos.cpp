@@ -9,11 +9,21 @@ namespace
 constexpr int DISPLAY_WIDTH = 800;
 constexpr int DISPLAY_HEIGHT = 480;
 
+struct Event
+{
+    std::int64_t type{}, x{}, y{};
+};
+
+constexpr std::int64_t TOUCH_DOWN = 1;
+constexpr std::int64_t TOUCH_UP = 2;
+constexpr std::int64_t TOUCH_MOVE = 3;
+
 struct State
 {
     std::unique_ptr<sf::RenderWindow> window;
     bool has_input = false;
-    sf::Event event;
+    bool touch_down = false;
+    Event event;
 };
 
 State *state = nullptr;
@@ -82,7 +92,34 @@ std::int64_t has_input()
         return false;
     if (state->has_input)
         return true;
-    state->has_input = state->window->pollEvent(state->event);
+    sf::Event event;
+    if (!state->window->pollEvent(event))
+        return false;
+
+    if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == 0)
+    {
+        state->event.type = TOUCH_DOWN;
+        state->event.x = event.mouseButton.x;
+        state->event.y = event.mouseButton.y;
+        state->has_input = true;
+        state->touch_down = true;
+    }
+    else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == 0)
+    {
+        state->event.type = TOUCH_UP;
+        state->event.x = event.mouseButton.x;
+        state->event.y = event.mouseButton.y;
+        state->has_input = true;
+        state->touch_down = false;
+    }
+    else if (event.type == sf::Event::MouseMoved && state->touch_down)
+    {
+        state->event.type = TOUCH_MOVE;
+        state->event.x = event.mouseMove.x;
+        state->event.y = event.mouseMove.y;
+        state->has_input = true;
+    }
+
     return state->has_input;
 }
 
@@ -95,17 +132,23 @@ std::int64_t pop_event()
 
 std::int64_t get_event_type()
 {
-    return 0;
+    if (!has_input())
+        return 0;
+    return state->event.type;
 }
 
 std::int64_t get_event_x()
 {
-    return -1;
+    if (!has_input())
+        return -1;
+    return state->event.x;
 }
 
 std::int64_t get_event_y()
 {
-    return -1;
+    if (!has_input())
+        return -1;
+    return state->event.y;
 }
 
 }
