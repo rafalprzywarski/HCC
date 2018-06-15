@@ -6,9 +6,11 @@
 (def app-state (atom {:counter 0}))
 
 
+(def font-path "assets/Swiss 911 Ultra Compressed BT.ttf")
 (def fonts
-  [{:name :big :path "/usr/share/fonts/truetype/tt0105m.ttf" :size 32}
-   {:name :small :path "/usr/share/fonts/truetype/tt0105m.ttf" :size 11}])
+  [{:name :big :path font-path :size 32}
+   {:name :small :path font-path :size 12}
+   {:name :tiny :path font-path :size 9}])
 
 
 (def main-palette
@@ -76,8 +78,8 @@
     :text-color :primary
     :color :black}
    {:type :label
-    :font :small
-    :text "[left-bottom]"
+    :font :tiny
+    :text "LEFT-BOTTOM"
     :origin [20 90]
     :extents [100 40]
     :text-color :black
@@ -86,8 +88,8 @@
     :margin 2
     :color :secondary}
    {:type :label
-    :font :small
-    :text "[left-center]"
+    :font :tiny
+    :text "LEFT-CENTER"
     :origin [20 140]
     :extents [100 40]
     :text-color :black
@@ -96,8 +98,8 @@
     :margin 2
     :color :secondary}
    {:type :label
-    :font :small
-    :text "[left-top]"
+    :font :tiny
+    :text "LEFT-TOP"
     :origin [20 190]
     :extents [100 40]
     :text-color :black
@@ -106,8 +108,8 @@
     :margin 2
     :color :secondary}
    {:type :label
-    :font :small
-    :text "[center-bottom]"
+    :font :tiny
+    :text "CENTER-BOTTOM"
     :origin [130 90]
     :extents [100 40]
     :text-color :black
@@ -116,8 +118,8 @@
     :margin 2
     :color :secondary}
    {:type :label
-    :font :small
-    :text "[center-center]"
+    :font :tiny
+    :text "CENTER"
     :origin [130 140]
     :extents [100 40]
     :text-color :black
@@ -126,8 +128,8 @@
     :margin 2
     :color :secondary}
    {:type :label
-    :font :small
-    :text "[center-top]"
+    :font :tiny
+    :text "CENTER-TOP"
     :origin [130 190]
     :extents [100 40]
     :text-color :black
@@ -136,8 +138,8 @@
     :margin 2
     :color :secondary}
    {:type :label
-    :font :small
-    :text "[right-bottom]"
+    :font :tiny
+    :text "RIGHT-BOTTOM"
     :origin [240 90]
     :extents [100 40]
     :text-color :black
@@ -146,8 +148,8 @@
     :margin 2
     :color :secondary}
    {:type :label
-    :font :small
-    :text "[right-center]"
+    :font :tiny
+    :text "RIGHT-CENTER"
     :origin [240 140]
     :extents [100 40]
     :text-color :black
@@ -157,8 +159,8 @@
     :color :secondary}
    {:id :sample-button
     :type :label
-    :font :small
-    :text "[right-top]"
+    :font :tiny
+    :text "RIGHT-TOP"
     :origin [240 190]
     :extents [100 40]
     :text-color :black
@@ -175,7 +177,7 @@
     :text-color :black
     :text-align :right
     :text-valign :bottom
-    :margin 5
+    :margin 2
     :color :primary
     :on-touch-down hightlight-counter
     :on-touch-lost dim-counter
@@ -191,7 +193,7 @@
     :text-color :black
     :text-align :right
     :text-valign :bottom
-    :margin 5
+    :margin 2
     :color :primary
     :on-touch-down hightlight-counter
     :on-touch-lost dim-counter
