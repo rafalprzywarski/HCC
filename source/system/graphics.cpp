@@ -1,7 +1,11 @@
 #include <cstdint>
+#ifndef __APPLE__
 #include <bcm_host.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
+#else
+#include <OpenGL/gl.h>
+#endif
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
@@ -34,7 +38,9 @@ namespace
 "}\n"
 
 const std::string arc_vertex_shader_source =
+#ifndef __APPLE__
 "#version 100\n"
+#endif // __APPLE__
 "uniform mat4 u_Projection;\n"
 "attribute vec4 a_Position;\n"
 "attribute vec4 a_Color;\n"
@@ -52,8 +58,10 @@ HCC_GRAPHICS_TO_LINEAR
 "}\n";
 
 const std::string arc_fragment_shader_source =
+#ifndef __APPLE__
 "#version 100\n"
 "precision mediump float;\n"
+#endif // __APPLE__
 "varying vec4 v_Color;\n"
 "varying vec2 v_Position;\n"
 "varying vec4 v_Circle;\n"
@@ -77,7 +85,9 @@ HCC_GRAPHICS_TO_SRGB
 "}\n";
 
 const std::string font_vertex_shader_source =
+#ifndef __APPLE__
 "#version 100\n"
+#endif // __APPLE__
 "uniform mat4 u_Projection;\n"
 "attribute vec4 a_Position;\n"
 "attribute vec3 a_BackgroundColor;\n"
@@ -96,8 +106,10 @@ HCC_GRAPHICS_TO_LINEAR
 "}\n";
 
 const std::string font_fragment_shader_source =
+#ifndef __APPLE__
 "#version 100\n"
 "precision mediump float;\n"
+#endif // __APPLE__
 "uniform sampler2D u_Texture;\n"
 "varying vec3 v_BackgroundColor;\n"
 "varying vec4 v_Color;\n"
@@ -111,6 +123,7 @@ HCC_GRAPHICS_TO_SRGB
 "    gl_FragColor = vec4(tosRGB(mix(v_BackgroundColor, v_Color.rgb, v_Color.a * alpha)), 1);\n"
 "}\n";
 
+#ifndef __APPLE__
 const EGLint DISPLAY_ATTRIBUTES[] =
 {
     EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
@@ -127,6 +140,8 @@ const EGLint CONTEXT_ATTRIBUTES[] =
     EGL_CONTEXT_CLIENT_VERSION, 2,
     EGL_NONE
 };
+
+#endif
 
 struct FontDrawCall
 {
@@ -178,10 +193,13 @@ struct Font
 
 struct State
 {
+#ifndef __APPLE__
     EGLDisplay display{};
     std::uint32_t display_width{}, display_height{};
     EGLSurface surface{};
     EGL_DISPMANX_WINDOW_T window{};
+#endif // __APPLE__
+
     FT_Library freetype;
 
     std::vector<Font> fonts;
@@ -214,10 +232,8 @@ struct State
 
 State *state = nullptr;
 
-void init_projection()
+void init_projection(int width, int height)
 {
-    auto width = state->display_width;
-    auto height = state->display_height;
     std::array<GLfloat,  16> m = {{
         2.0f / width, 0,             0, 0,
         0,            2.0f / height, 0, 0,
@@ -431,9 +447,29 @@ std::int64_t text_width(const Font& font, const char *text)
 extern "C"
 {
 
+#ifndef __APPLE__
+std::int64_t get_display_width()
+{
+    if (!state)
+        return 0;
+    return state->display_width;
+}
+
+std::int64_t get_display_height()
+{
+    if (!state)
+        return 0;
+    return state->display_height;
+}
+#else
+std::int64_t get_display_width();
+std::int64_t get_display_height();
+#endif // __APPLE__
+
 std::int64_t initialize_graphics()
 {
     std::unique_ptr<State> state{new State};
+#ifndef __APPLE__
     bcm_host_init();
 
     graphics_get_display_size(0, &state->display_width, &state->display_height);
@@ -463,12 +499,14 @@ std::int64_t initialize_graphics()
     state->surface = eglCreateWindowSurface(state->display, config, &state->window, NULL);
     eglMakeCurrent(state->display, state->surface, state->surface, context);
     eglSwapInterval(state->display, 1);
-
+#endif // __APPLE__
     ::state = state.release();
+
+    std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
 
     init_shaders();
     init_buffers();
-    init_projection();
+    init_projection(get_display_width(), get_display_height());
 
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_DST_ALPHA);
@@ -482,14 +520,17 @@ std::int64_t shutdown_graphics()
 {
     if (!state)
         return 0;
+#ifndef __APPLE__
     eglMakeCurrent(state->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglTerminate(state->display);
     eglReleaseThread();
+#endif
     delete state;
     state = nullptr;
     return 0;
 }
 
+#ifndef __APPLE__
 std::int64_t clear()
 {
     if (!state)
@@ -498,6 +539,7 @@ std::int64_t clear()
     glClear(GL_COLOR_BUFFER_BIT);
     return 0;
 }
+#endif // __APPLE__
 
 std::int64_t arc(
     std::int64_t x0, std::int64_t y0,
@@ -659,6 +701,7 @@ std::int64_t render()
     return 0;
 }
 
+#ifndef __APPLE__
 std::int64_t swap_buffers()
 {
     if (!state)
@@ -666,18 +709,6 @@ std::int64_t swap_buffers()
     eglSwapBuffers(state->display, state->surface);
     return 0;
 }
-
-std::int64_t get_display_width()
-{
-    if (!state)
-        return 0;
-    return state->display_width;
-}
-std::int64_t get_display_height()
-{
-    if (!state)
-        return 0;
-    return state->display_height;
-}
+#endif
 
 }
