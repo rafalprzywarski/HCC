@@ -3,7 +3,7 @@
 extern "C"
 {
 
-std::int64_t initialize_graphics();
+std::int64_t initialize_graphics(std::int64_t display_scale);
 std::int64_t shutdown_graphics();
 std::int64_t initialize_input();
 std::int64_t shutdown_input();
