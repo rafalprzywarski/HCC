@@ -268,8 +268,8 @@
   (println "loaded" (count @fonts) "fonts"))
 
 
-(defn initialize! []
-  (si/initialize!)
+(defn initialize! [scale]
+  (si/initialize! scale)
   (println "initialized display" (si/get-display-width) "x" (si/get-display-height)))
 
 

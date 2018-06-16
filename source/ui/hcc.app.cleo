@@ -233,7 +233,7 @@
 
 
 (defn main []
-  (ui/initialize!)
+  (ui/initialize! 1)
   (main-loop-for! 1)
   (ui/load-fonts! fonts)
   (main-loop-for! 200)

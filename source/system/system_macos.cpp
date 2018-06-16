@@ -21,6 +21,7 @@ constexpr std::int64_t TOUCH_MOVE = 3;
 struct State
 {
     std::unique_ptr<sf::RenderWindow> window;
+    int display_scale = 1;
     bool has_input = false;
     bool touch_down = false;
     Event event;
@@ -33,21 +34,22 @@ State *state = nullptr;
 extern "C"
 {
 
-std::int64_t initialize_graphics();
+std::int64_t initialize_graphics(std::int64_t scale);
 std::int64_t shutdown_graphics();
 
-std::int64_t initialize()
+std::int64_t initialize(std::int64_t scale)
 {
     std::unique_ptr<State> state{new State};
+    state->display_scale = (scale < 1) ? 1 : ((scale > 3) ? 3 : scale);
 
     sf::ContextSettings settings;
-    state->window.reset(new sf::RenderWindow(sf::VideoMode(DISPLAY_WIDTH, DISPLAY_HEIGHT), "hcc", sf::Style::Titlebar | sf::Style::Close, settings));
+    state->window.reset(new sf::RenderWindow(sf::VideoMode(DISPLAY_WIDTH * state->display_scale, DISPLAY_HEIGHT * state->display_scale), "hcc", sf::Style::Titlebar | sf::Style::Close, settings));
     state->window->setVerticalSyncEnabled(true);
 
     ::state = state.release();
 
     ::state->window->setActive();
-    initialize_graphics();
+    initialize_graphics(::state->display_scale);
     return 0;
 }
 
@@ -99,24 +101,24 @@ std::int64_t has_input()
     if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == 0)
     {
         state->event.type = TOUCH_DOWN;
-        state->event.x = event.mouseButton.x;
-        state->event.y = event.mouseButton.y;
+        state->event.x = event.mouseButton.x / state->display_scale;
+        state->event.y = event.mouseButton.y / state->display_scale;
         state->has_input = true;
         state->touch_down = true;
     }
     else if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == 0)
     {
         state->event.type = TOUCH_UP;
-        state->event.x = event.mouseButton.x;
-        state->event.y = event.mouseButton.y;
+        state->event.x = event.mouseButton.x / state->display_scale;
+        state->event.y = event.mouseButton.y / state->display_scale;
         state->has_input = true;
         state->touch_down = false;
     }
     else if (event.type == sf::Event::MouseMoved && state->touch_down)
     {
         state->event.type = TOUCH_MOVE;
-        state->event.x = event.mouseMove.x;
-        state->event.y = event.mouseMove.y;
+        state->event.x = event.mouseMove.x / state->display_scale;
+        state->event.y = event.mouseMove.y / state->display_scale;
         state->has_input = true;
     }
 

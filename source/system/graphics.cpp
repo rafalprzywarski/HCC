@@ -199,6 +199,7 @@ struct State
     EGLSurface surface{};
     EGL_DISPMANX_WINDOW_T window{};
 #endif // __APPLE__
+    int display_scale = 2;
 
     FT_Library freetype;
 
@@ -365,7 +366,7 @@ RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned p
 {
     RasterizedFont font;
     font.precision = precision;
-    Image img{1024, 1024};
+    Image img{2048, 2048};
     unsigned dx = 0, dy = 0, row_height = 0;
     for (auto a : chars)
         for (auto b : chars)
@@ -466,9 +467,10 @@ std::int64_t get_display_width();
 std::int64_t get_display_height();
 #endif // __APPLE__
 
-std::int64_t initialize_graphics()
+std::int64_t initialize_graphics(std::int64_t scale)
 {
     std::unique_ptr<State> state{new State};
+    state->display_scale = scale;
 #ifndef __APPLE__
     bcm_host_init();
 
@@ -506,7 +508,7 @@ std::int64_t initialize_graphics()
 
     init_shaders();
     init_buffers();
-    init_projection(get_display_width(), get_display_height());
+    init_projection(get_display_width() * ::state->display_scale, get_display_height() * ::state->display_scale);
 
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_DST_ALPHA);
@@ -549,6 +551,11 @@ std::int64_t arc(
 {
     if (!state)
         return 0;
+    auto scale = state->display_scale;
+    x0 *= scale; y0 *= scale;
+    x1 *= scale; y1 *= scale;
+    cx *= scale; cy *= scale; cr *= scale;
+
     std::array<GLfloat, 12> vertices{{
         GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y0), GLfloat(x1), GLfloat(y1),
         GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y1), GLfloat(x0), GLfloat(y1)}};
@@ -576,12 +583,12 @@ std::int64_t load_font(const char *filename, std::int64_t size)
     const unsigned PRECISION = 16;
     FT_Face fontface;
     FT_New_Face(::state->freetype, filename, 0, &fontface);
-    FT_Set_Char_Size(fontface, 0, size * PRECISION * 64, 131, 142);
+    FT_Set_Char_Size(fontface, 0, size * PRECISION * state->display_scale * 64, 131, 142);
 
     std::string charset;
     for (char c = 32; c < 127; ++c)
         charset += c;
-    ::state->fonts.push_back(generate_font(fontface, charset, 16));
+    ::state->fonts.push_back(generate_font(fontface, charset, PRECISION));
 
     FT_Done_Face(fontface);
 
@@ -595,6 +602,7 @@ std::int64_t text(
     std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a,
     std::int64_t bg_r, std::int64_t bg_g, std::int64_t bg_b)
 {
+    x *= state->display_scale; y *= state->display_scale;
     auto& font = ::state->fonts.at(font_id);
     auto array_offset = ::state->font_vertices.size() / 2;
     auto pen_x = x * font.precision;
