@@ -253,9 +253,12 @@
 (defn render-ui [ui state]
   (reduce1 (fn [out [component :as elem]]
              (cond
-               (keyword? component) (conj out elem)
-               (and (map? component) (::fn component)) (reduce1 conj out ((::fn component) state))
-               :else out))
+               (keyword? component)
+               (conj out elem)
+               (and (map? component) (::fn component))
+               (reduce1 conj out ((::fn component) ((::state-fn component) state)))
+               :else
+               out))
            []
            ui))
 
@@ -271,8 +274,14 @@
       app-state)))
 
 
-(defmacro defc [name args body]
-  (list 'def name {::fn `(fn ~args ~body)}))
+(defmacro defc [name [state-param :as params] body]
+  (list 'def name (if (and (map? state-param)
+                           (= (count state-param) 1)
+                           (contains? state-param :keys))
+                    {::fn `(fn [~(:keys state-param)] ~body)
+                     ::state-fn `(fn [~state-param] ~(:keys state-param))}
+                    {::fn `(fn ~params ~body)
+                     ::state-fn `(fn [state#] state#)})))
 
 
 (defn load-fonts! [fs]
