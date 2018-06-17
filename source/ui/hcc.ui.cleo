@@ -250,12 +250,20 @@
            {}
            (filter (fn [elem] (:id (second elem))) elems)))
 
+(defn render-ui [ui state]
+  (reduce1 (fn [out elem]
+             (if (keyword? (first elem))
+               (conj out elem)
+               (reduce1 conj out ((first elem) state))))
+           []
+           ui))
+
 
 (defn step! [palette ui app-state]
   (let [app-state (if-let [rendered (:rendered @ui-state)]
                     (handle-ui-input! rendered app-state)
                     app-state)]
-    (let [rendered (ui app-state)
+    (let [rendered (render-ui ui app-state)
           indexed (index-elems rendered)]
       (swap! ui-state (fn [state] (assoc state :rendered rendered :indexed indexed)))
       (render-ui! palette rendered)
