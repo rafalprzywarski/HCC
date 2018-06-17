@@ -251,10 +251,11 @@
            (filter (fn [elem] (:id (second elem))) elems)))
 
 (defn render-ui [ui state]
-  (reduce1 (fn [out elem]
-             (if (keyword? (first elem))
-               (conj out elem)
-               (reduce1 conj out ((first elem) state))))
+  (reduce1 (fn [out [component :as elem]]
+             (cond
+               (keyword? component) (conj out elem)
+               (and (map? component) (::fn component)) (reduce1 conj out ((::fn component) state))
+               :else out))
            []
            ui))
 
@@ -268,6 +269,10 @@
       (swap! ui-state (fn [state] (assoc state :rendered rendered :indexed indexed)))
       (render-ui! palette rendered)
       app-state)))
+
+
+(defmacro defc [name args body]
+  (list 'def name {::fn `(fn ~args ~body)}))
 
 
 (defn load-fonts! [fs]

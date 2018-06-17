@@ -45,7 +45,7 @@
   (dissoc state :counter-highlight))
 
 
-(defn counter [{:keys [counter counter-highlight]}]
+(ui/defc counter [{:keys [counter counter-highlight]}]
   [[:shape {:origin [20 240]
             :color (if counter-highlight :highlight :secondary)
             :primitives [{:type :arc
