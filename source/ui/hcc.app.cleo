@@ -67,7 +67,7 @@
     :text "2457-24567-246724567-24567823567-24-5672457"
     :origin [180 430]
     :extents [400 30]
-    :text-valign :center
+    :text-valign :baseline-center
     :text-color :black
     :color :primary}
    {:type :label
@@ -84,7 +84,7 @@
     :extents [100 40]
     :text-color :black
     :text-align :left
-    :text-valign :bottom
+    :text-valign :baseline
     :margin 2
     :color :secondary}
    {:type :label
@@ -94,7 +94,7 @@
     :extents [100 40]
     :text-color :black
     :text-align :left
-    :text-valign :center
+    :text-valign :baseline-center
     :margin 2
     :color :secondary}
    {:type :label
@@ -114,7 +114,7 @@
     :extents [100 40]
     :text-color :black
     :text-align :center
-    :text-valign :bottom
+    :text-valign :baseline
     :margin 2
     :color :secondary}
    {:type :label
@@ -124,7 +124,7 @@
     :extents [100 40]
     :text-color :black
     :text-align :center
-    :text-valign :center
+    :text-valign :baseline-center
     :margin 2
     :color :secondary}
    {:type :label
@@ -144,7 +144,7 @@
     :extents [100 40]
     :text-color :black
     :text-align :right
-    :text-valign :bottom
+    :text-valign :baseline
     :margin 2
     :color :secondary}
    {:type :label
@@ -154,7 +154,7 @@
     :extents [100 40]
     :text-color :black
     :text-align :right
-    :text-valign :center
+    :text-valign :baseline-center
     :margin 2
     :color :secondary}
    {:id :sample-button
@@ -176,7 +176,7 @@
     :extents [200 60]
     :text-color :black
     :text-align :right
-    :text-valign :bottom
+    :text-valign :baseline
     :margin 2
     :color :primary
     :on-touch-down hightlight-counter
@@ -192,7 +192,7 @@
     :extents [200 60]
     :text-color :black
     :text-align :right
-    :text-valign :bottom
+    :text-valign :baseline
     :margin 2
     :color :primary
     :on-touch-down hightlight-counter

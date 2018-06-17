@@ -20,6 +20,13 @@
 
 namespace
 {
+
+constexpr int VA_BOTTOM = -1;
+constexpr int VA_BASELINE = 0;
+constexpr int VA_CENTER = 1;
+constexpr int VA_BASELINE_CENTER = 2;
+constexpr int VA_TOP = 3;
+
 #define HCC_GRAPHICS_TO_LINEAR \
 "vec3 toLinear(vec3 color)\n" \
 "{\n" \
@@ -176,6 +183,7 @@ struct FontChar
 struct RasterizedFont
 {
     int precision{};
+    int capital_ascender{};
     Image image;
     std::unordered_map<char, std::unordered_map<char, int>> kerning;
     std::unordered_map<char, FontChar> chars;
@@ -184,7 +192,7 @@ struct RasterizedFont
 struct Font
 {
     int precision{};
-    int ascender{}, descender{};
+    int ascender{}, descender{}, center{}, baseline_center{};
     int texture_width{}, texture_height{};
     GLuint texture;
     std::unordered_map<char, std::unordered_map<char, int>> kerning;
@@ -388,6 +396,9 @@ RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned p
         font.chars[c].bearing_y = (bearing_y + precision - 1) / precision * precision;
         font.chars[c].advance_x = face->glyph->metrics.horiAdvance / 64;
 
+        if (c == 'T')
+            font.capital_ascender = bearing_y;
+
         for (unsigned offset = 0; offset < precision; ++offset)
         {
             auto g = downscale(bg->bitmap, precision, offset, (font.precision - (bearing_y % font.precision)) % font.precision);
@@ -419,8 +430,14 @@ Font generate_font(FT_Face face, const std::string& chars, unsigned precision)
     auto rf = rasterize_font(face, chars, precision);
     Font f;
     f.precision = rf.precision;
-    f.ascender = (FT_MulFix(face->ascender, face->size->metrics.y_scale) + (64 * rf.precision - 1)) / (64 * rf.precision);
-    f.descender = -(FT_MulFix(-face->descender, face->size->metrics.y_scale) + (64 * rf.precision - 1)) / (64 * rf.precision);
+    auto ascender = rf.capital_ascender ?
+        rf.capital_ascender * 64 :
+        FT_MulFix(face->ascender, face->size->metrics.y_scale);
+
+    f.ascender = (ascender + (32 * rf.precision - 1)) / (64 * rf.precision);
+    f.descender = -(FT_MulFix(-face->descender, face->size->metrics.y_scale) + (32 * rf.precision - 1)) / (64 * rf.precision);
+    f.center = (ascender - FT_MulFix(-face->descender, face->size->metrics.y_scale) + (64 * rf.precision - 1)) / (2 * 64 * rf.precision);
+    f.baseline_center = (ascender + (64 * rf.precision - 1)) / (2 * 64 * rf.precision);
     f.texture_width = rf.image.width;
     f.texture_height = rf.image.height;
     f.texture = create_texture(rf.image.width, rf.image.height, rf.image.alpha.data());
@@ -610,12 +627,17 @@ std::int64_t text(
         pen_x -= text_width(font, text);
     else if (anchor == 0)
         pen_x -= text_width(font, text) / 2;
-    if (vanchor > 0)
-        y -= font.ascender;
-    else if (vanchor == 0)
-        y -= (font.ascender + font.descender) / 2;
-    else // (vanchor < 0)
-        y -= font.descender;
+
+    switch (vanchor)
+    {
+    case VA_BOTTOM: y -= font.descender; break;
+    case VA_CENTER: y -= font.center; break;
+    case VA_BASELINE_CENTER: y -= font.baseline_center; break;
+    case VA_TOP: y -= font.ascender; break;
+    case VA_BASELINE:
+    default:;
+    }
+
     char prev_ch = 0;
     for (char ch : std::string(text))
     {

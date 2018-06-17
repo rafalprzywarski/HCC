@@ -17,11 +17,11 @@
                    (= align :right) (- (+ origin-x width) margin)
                    :else (+ origin-x margin))
         origin-y (cond
-                   (= valign :center) (+ origin-y (/ height 2))
+                   (or (= valign :center) (= valign :baseline-center)) (+ origin-y (/ height 2))
                    (= valign :top) (- (+ origin-y height) margin)
                    :else (+ origin-y margin))]
     {:text-anchor ({:center :center, :right :right} align :left)
-     :text-vanchor ({:center :center, :top :top} valign :bottom) ; TODO: use hash-set
+     :text-vanchor ({:bottom :bottom, :center :center, :baseline-center :baseline-center, :top :top} valign :baseline) ; TODO: use hash-set
      :origin [origin-x origin-y]}))
 
 
@@ -163,7 +163,7 @@
              (si/text! (@fonts font)
                        text
                        origin-x origin-y
-                       ({:center 0, :right 1} text-anchor -1) ({:center 0, :top 1} text-vanchor -1)
+                       ({:center 0, :right 1} text-anchor -1) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-vanchor 0)
                        tr tg tb (or ta 255)
                        r g b)))})
 
