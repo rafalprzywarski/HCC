@@ -139,8 +139,8 @@
 
 (defn render-primitives [palette ui state]
   (mapcatv (fn [elem]
-             (when-let [render (ui-renderers (:type elem))]
-               (render palette elem state)))
+             (when-let [render (ui-renderers (first elem))]
+               (render palette (second elem) state)))
            ui))
 
 
@@ -184,7 +184,7 @@
 (defn find-button-by-pos [ui [pos-x pos-y]]
   (loop [s (seq ui)]
     (when s
-      (let [{:keys [type origin extents] :as button} (first s)
+      (let [[type {:keys [origin extents] :as button}] (first s)
             [origin-x origin-y] origin
             [width height] extents]
         (if (and (= type :button)
@@ -246,7 +246,9 @@
 
 
 (defn index-elems [elems]
-  (reduce1 (fn [indexed elem] (assoc indexed (:id elem) elem)) {} (seq (filter :id elems))))
+  (reduce1 (fn [indexed elem] (assoc indexed (:id (second  elem)) elem))
+           {}
+           (filter (fn [elem] (:id (second elem))) elems)))
 
 
 (defn step! [palette ui app-state]

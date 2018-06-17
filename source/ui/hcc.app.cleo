@@ -46,178 +46,160 @@
 
 
 (defn main-ui [state]
-  [{:type :shape
-    :origin [20 20]
-    :color :primary
-    :primitives [{:type :arc
-                  :origin [390 220]
-                  :extents [370 220]
-                  :center [-10 0]
-                  :radius 100
-                  :inverted? :true}]}
-   {:type :shape
-    :origin [20 240]
-    :color (if (:counter-highlight state) :highlight :secondary)
-    :primitives [{:type :arc
-                  :extents [760 220]
-                  :center [380 0]
-                  :radius 80}]}
-   {:type :label
-    :font :small
-    :text "2457-24567-246724567-24567823567-24-5672457"
-    :origin [180 430]
-    :extents [400 30]
-    :text-valign :baseline-center
-    :text-color :black
-    :color :primary}
-   {:type :label
-    :font :big
-    :text "DEVICE CONTROL CENTER             71286"
-    :origin [30 15]
-    :extents [10 10]
-    :text-color :primary
-    :color :black}
-   {:type :label
-    :font :tiny
-    :text "LEFT-BOTTOM"
-    :origin [20 90]
-    :extents [100 40]
-    :text-color :black
-    :text-align :left
-    :text-valign :baseline
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :tiny
-    :text "LEFT-CENTER"
-    :origin [20 140]
-    :extents [100 40]
-    :text-color :black
-    :text-align :left
-    :text-valign :baseline-center
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :tiny
-    :text "LEFT-TOP"
-    :origin [20 190]
-    :extents [100 40]
-    :text-color :black
-    :text-align :left
-    :text-valign :top
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :tiny
-    :text "CENTER-BOTTOM"
-    :origin [130 90]
-    :extents [100 40]
-    :text-color :black
-    :text-align :center
-    :text-valign :baseline
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :tiny
-    :text "CENTER"
-    :origin [130 140]
-    :extents [100 40]
-    :text-color :black
-    :text-align :center
-    :text-valign :baseline-center
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :tiny
-    :text "CENTER-TOP"
-    :origin [130 190]
-    :extents [100 40]
-    :text-color :black
-    :text-align :center
-    :text-valign :top
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :tiny
-    :text "RIGHT-BOTTOM"
-    :origin [240 90]
-    :extents [100 40]
-    :text-color :black
-    :text-align :right
-    :text-valign :baseline
-    :margin 2
-    :color :secondary}
-   {:type :label
-    :font :tiny
-    :text "RIGHT-CENTER"
-    :origin [240 140]
-    :extents [100 40]
-    :text-color :black
-    :text-align :right
-    :text-valign :baseline-center
-    :margin 2
-    :color :secondary}
-   {:id :sample-button
-    :type :label
-    :font :tiny
-    :text "RIGHT-TOP"
-    :origin [240 190]
-    :extents [100 40]
-    :text-color :black
-    :text-align :right
-    :text-valign :top
-    :margin 2
-    :color :secondary}
-   {:id :sample-button
-    :type :button
-    :font :small
-    :text "742-5625"
-    :origin [400 80]
-    :extents [200 60]
-    :text-color :black
-    :text-align :right
-    :text-valign :baseline
-    :margin 2
-    :color :primary
-    :on-touch-down hightlight-counter
-    :on-touch-lost dim-counter
-    :on-touch-up dim-counter
-    :on-click dec-counter}
-   {:id :sample-button2
-    :type :button
-    :button-style :rounded
-    :font :small
-    :text "226-7322"
-    :origin [400 150]
-    :extents [200 60]
-    :text-color :black
-    :text-align :right
-    :text-valign :baseline
-    :margin 2
-    :color :primary
-    :on-touch-down hightlight-counter
-    :on-touch-lost dim-counter
-    :on-touch-up dim-counter
-    :on-click inc-counter}
-   {:type :top-left-swept
-    :origin [20 390]
-    :extents [160 70]
-    :inner-radius 40
-    :color :primary}
-   {:type :shape
-    :origin [20 290]
-    :color :primary
-    :primitives [{:type :rect
-                  :extents [120 100]}]}
-   {:type :label
-    :origin [370 240]
-    :extents [60 60]
-    :color (if (:counter-highlight state) :highlight :secondary)
-    :text-color :black
-    :text (str (:counter state))
-    :font :big
-    :text-align :center
-    :text-valign :center}])
+  [[:shape {:origin [20 20]
+            :color :primary
+            :primitives [{:type :arc
+                          :origin [390 220]
+                          :extents [370 220]
+                          :center [-10 0]
+                          :radius 100
+                          :inverted? :true}]}]
+   [:shape {:origin [20 240]
+            :color (if (:counter-highlight state) :highlight :secondary)
+            :primitives [{:type :arc
+                          :extents [760 220]
+                          :center [380 0]
+                          :radius 80}]}]
+   [:label {:font :small
+            :text "2457-24567-246724567-24567823567-24-5672457"
+            :origin [180 430]
+            :extents [400 30]
+            :text-valign :baseline-center
+            :text-color :black
+            :color :primary}]
+   [:label {:font :big
+            :text "DEVICE CONTROL CENTER             71286"
+            :origin [30 15]
+            :extents [10 10]
+            :text-color :primary
+            :color :black}]
+   [:label {:font :tiny
+            :text "LEFT-BOTTOM"
+            :origin [20 90]
+            :extents [100 40]
+            :text-color :black
+            :text-align :left
+            :text-valign :baseline
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "LEFT-CENTER"
+            :origin [20 140]
+            :extents [100 40]
+            :text-color :black
+            :text-align :left
+            :text-valign :baseline-center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "LEFT-TOP"
+            :origin [20 190]
+            :extents [100 40]
+            :text-color :black
+            :text-align :left
+            :text-valign :top
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "CENTER-BOTTOM"
+            :origin [130 90]
+            :extents [100 40]
+            :text-color :black
+            :text-align :center
+            :text-valign :baseline
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "CENTER"
+            :origin [130 140]
+            :extents [100 40]
+            :text-color :black
+            :text-align :center
+            :text-valign :baseline-center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "CENTER-TOP"
+            :origin [130 190]
+            :extents [100 40]
+            :text-color :black
+            :text-align :center
+            :text-valign :top
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "RIGHT-BOTTOM"
+            :origin [240 90]
+            :extents [100 40]
+            :text-color :black
+            :text-align :right
+            :text-valign :baseline
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "RIGHT-CENTER"
+            :origin [240 140]
+            :extents [100 40]
+            :text-color :black
+            :text-align :right
+            :text-valign :baseline-center
+            :margin 2
+            :color :secondary}]
+   [:label {:id :sample-button
+            :font :tiny
+            :text "RIGHT-TOP"
+            :origin [240 190]
+            :extents [100 40]
+            :text-color :black
+            :text-align :right
+            :text-valign :top
+            :margin 2
+            :color :secondary}]
+   [:button {:id :sample-button
+             :font :small
+             :text "742-5625"
+             :origin [400 80]
+             :extents [200 60]
+             :text-color :black
+             :text-align :right
+             :text-valign :baseline
+             :margin 2
+             :color :primary
+             :on-touch-down hightlight-counter
+             :on-touch-lost dim-counter
+             :on-touch-up dim-counter
+             :on-click dec-counter}]
+   [:button {:id :sample-button2
+             :button-style :rounded
+             :font :small
+             :text "226-7322"
+             :origin [400 150]
+             :extents [200 60]
+             :text-color :black
+             :text-align :right
+             :text-valign :baseline
+             :margin 2
+             :color :primary
+             :on-touch-down hightlight-counter
+             :on-touch-lost dim-counter
+             :on-touch-up dim-counter
+             :on-click inc-counter}]
+   [:top-left-swept {:origin [20 390]
+                     :extents [160 70]
+                     :inner-radius 40
+                     :color :primary}]
+   [:shape {:origin [20 290]
+            :color :primary
+            :primitives [{:type :rect
+                          :extents [120 100]}]}]
+   [:label {:origin [370 240]
+            :extents [60 60]
+            :color (if (:counter-highlight state) :highlight :secondary)
+            :text-color :black
+            :text (str (:counter state))
+            :font :big
+            :text-align :center
+            :text-valign :center}]])
 
 
 (defmacro time [expr]
