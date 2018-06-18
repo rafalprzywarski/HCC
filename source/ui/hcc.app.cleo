@@ -62,6 +62,18 @@
             :text-valign :center}]])
 
 
+(ui/defc highligted-label [{:keys [counter-highlight]} origin text]
+  [[:label {:font :small
+            :text text
+            :origin origin
+            :extents [80 40]
+            :text-color :black
+            :text-align :center
+            :text-valign :baseline-center
+            :margin 2
+            :color (if counter-highlight :highlight :secondary)}]])
+
+
 (def main-ui
   [[:shape {:origin [20 20]
             :color :primary
@@ -72,6 +84,8 @@
                           :radius 100
                           :inverted? :true}]}]
    [counter]
+   [highligted-label [700 80] "994-772"]
+   [highligted-label [700 125] "467-385"]
    [:label {:font :small
             :text "2457-24567-246724567-24567823567-24-5672457"
             :origin [180 430]
