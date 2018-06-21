@@ -3,7 +3,11 @@
 (alias 'ui 'hcc.ui)
 
 
-(def app-state (atom {:counter 0}))
+(def app-state (atom {:counter 0
+                      :code ""}))
+
+
+(def current-ui (atom nil))
 
 
 (def font-path "assets/Swiss 911 Ultra Compressed BT.ttf")
@@ -11,15 +15,6 @@
   [{:name :big :path font-path :size 32}
    {:name :small :path font-path :size 12}
    {:name :tiny :path font-path :size 9}])
-
-
-(def main-palette
-  {:primary [74 149 221]
-   :secondary [255 100 72]
-   :tertiary [255 180 72]
-   :quateriary [65 229 121]
-   :highlight [255 255 255]
-   :text [0 0 0]})
 
 
 (def main-palette
@@ -219,6 +214,73 @@
             :primitives [{:type :rect
                           :extents [120 100]}]}]])
 
+(def security-palette
+  {:primary [74 149 221]
+   :secondary [255 100 72]
+   :tertiary [255 180 72]
+   :quateriary [65 229 121]
+   :highlight [255 255 255]
+   :text [0 0 0]})
+
+
+(defn enter-digit [n]
+  (fn [state] (assoc state :code (str (:code state) n))))
+
+
+(defn reset-code [state]
+  (assoc state :code ""))
+
+
+(defn enter-code [state]
+  (reset! current-ui {:ui main-ui, :palette main-palette})
+  (assoc state :code ""))
+
+
+(defn digit-button [id text origin on-click]
+  [:button {:id id
+            :font :big
+            :text text
+            :origin origin
+            :extents [90 60]
+            :text-color :text
+            :text-align :right
+            :text-valign :baseline
+            :margin 2
+            :color :primary
+            :on-click on-click}])
+
+
+(ui/defc security-code [{:keys [code]}]
+  [[:label {:text code
+            :font :big
+            :origin [200 400]
+            :extents [300 90]
+            :text-color :text
+            :margin 2
+            :color :secondary}]])
+
+
+(def security-ui
+  [[security-code]
+   (digit-button :digit-clr "RESET" [300 130] reset-code)
+   (digit-button :digit-0 "0" [400 130] (enter-digit 0))
+   (digit-button :digit-ent "ENTER" [500 130] enter-code)
+   (digit-button :digit-1 "1" [300 200] (enter-digit 1))
+   (digit-button :digit-2 "2" [400 200] (enter-digit 2))
+   (digit-button :digit-3 "3" [500 200] (enter-digit 3))
+   (digit-button :digit-4 "4" [300 270] (enter-digit 4))
+   (digit-button :digit-5 "5" [400 270] (enter-digit 5))
+   (digit-button :digit-6 "6" [500 270] (enter-digit 6))
+   (digit-button :digit-7 "7" [300 340] (enter-digit 7))
+   (digit-button :digit-8 "8" [400 340] (enter-digit 8))
+   (digit-button :digit-9 "9" [500 340] (enter-digit 9))
+   [:label {:text "CONSOLE"
+            :font :big
+            :origin [20 300]
+            :extents [30 90]
+            :text-color :secondary
+            :color :text}]])
+
 
 (defmacro time [expr]
   `(let [start# (get-time)
@@ -228,12 +290,13 @@
 
 (defn main-loop-for! [n]
   (let [t (time (dotimes [i n]
-                  (reset! app-state (ui/step! main-palette main-ui @app-state))))]
+                  (reset! app-state (ui/step! (:palette @current-ui) (:ui @current-ui) @app-state))))]
     (println (/ t n) "ns per frame")))
 
 
 (defn main []
   (ui/initialize! 1)
+  (reset! current-ui {:ui security-ui :palette security-palette})
   (main-loop-for! 1)
   (ui/load-fonts! fonts)
   (main-loop-for! 200)
