@@ -374,8 +374,9 @@ RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned p
 {
     RasterizedFont font;
     font.precision = precision;
-    Image img{2048, 2048};
+    Image img{4096, 4096};
     unsigned dx = 0, dy = 0, row_height = 0;
+    bool too_big = false;
     for (auto a : chars)
         for (auto b : chars)
         {
@@ -411,6 +412,9 @@ RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned p
             row_height = std::max(row_height, g.height);
             blit(img, dx, dy, g);
 
+            if (dy + g.height > img.height)
+                too_big = true;
+
             FontGlyph fg;
             fg.img_x = dx;
             fg.img_y = dy;
@@ -421,6 +425,13 @@ RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned p
             dx += g.width;
         }
     }
+
+    if (too_big)
+        std::cerr << "error: font too big" << std::endl;
+
+    while (dy + row_height <= img.height / 2)
+        img.height /= 2;
+
     font.image = img;
     return font;
 }
