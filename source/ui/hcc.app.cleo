@@ -12,7 +12,7 @@
 
 (def font-path "assets/Swiss 911 Ultra Compressed BT.ttf")
 (def fonts
-  [{:name :big :path font-path :size 32}
+  [{:name :big :path font-path :size 27}
    {:name :small :path font-path :size 12}
    {:name :tiny :path font-path :size 9}])
 
@@ -250,35 +250,78 @@
             :on-click on-click}])
 
 
-(ui/defc security-code [{:keys [code]}]
+(ui/defc security-code [{:keys [code]} origin]
   [[:label {:text code
             :font :big
-            :origin [200 400]
-            :extents [300 90]
+            :origin origin
+            :extents [290 50]
             :text-color :text
+            :text-valign :baseline-center
             :margin 2
             :color :secondary}]])
 
 
 (def security-ui
-  [[security-code]
-   (digit-button :digit-clr "RESET" [300 130] reset-code)
-   (digit-button :digit-0 "0" [400 130] (enter-digit 0))
-   (digit-button :digit-ent "ENTER" [500 130] enter-code)
-   (digit-button :digit-1 "1" [300 200] (enter-digit 1))
-   (digit-button :digit-2 "2" [400 200] (enter-digit 2))
-   (digit-button :digit-3 "3" [500 200] (enter-digit 3))
-   (digit-button :digit-4 "4" [300 270] (enter-digit 4))
-   (digit-button :digit-5 "5" [400 270] (enter-digit 5))
-   (digit-button :digit-6 "6" [500 270] (enter-digit 6))
-   (digit-button :digit-7 "7" [300 340] (enter-digit 7))
-   (digit-button :digit-8 "8" [400 340] (enter-digit 8))
-   (digit-button :digit-9 "9" [500 340] (enter-digit 9))
-   [:label {:text "CONSOLE"
+  [[:shape {:origin [0 440]
+            :color :tertiary
+            :primitives [{:type :arc
+                          :extents [20 40]
+                          :center [20 20]
+                          :radius 20}
+                         {:type :rect
+                          :origin [20 0]
+                          :extents [30 40]}
+                         {:type :arc
+                          :origin [780 0]
+                          :extents [20 40]
+                          :center [0 20]
+                          :radius 20}
+                         {:type :rect
+                          :origin [750 0]
+                          :extents [30 40]}
+                         {:type :rect
+                          :origin [55 0]
+                          :extents [480 40]}]}]
+   [:shape {:origin [0 0]
+            :color :tertiary
+            :primitives [{:type :arc
+                          :extents [20 40]
+                          :center [20 20]
+                          :radius 20}
+                         {:type :rect
+                          :origin [20 0]
+                          :extents [30 40]}
+                         {:type :arc
+                          :origin [780 0]
+                          :extents [20 40]
+                          :center [0 20]
+                          :radius 20}
+                         {:type :rect
+                          :origin [750 0]
+                          :extents [30 40]}
+                         {:type :rect
+                          :origin [55 0]
+                          :extents [690 40]}]}]
+   [security-code [255 355]]
+   (digit-button :digit-clr "RESET" [255 75] reset-code)
+   (digit-button :digit-0 "0" [355 75] (enter-digit 0))
+   (digit-button :digit-ent "ENTER" [455 75] enter-code)
+   (digit-button :digit-1 "1" [255 145] (enter-digit 1))
+   (digit-button :digit-2 "2" [355 145] (enter-digit 2))
+   (digit-button :digit-3 "3" [455 145] (enter-digit 3))
+   (digit-button :digit-4 "4" [255 215] (enter-digit 4))
+   (digit-button :digit-5 "5" [355 215] (enter-digit 5))
+   (digit-button :digit-6 "6" [455 215] (enter-digit 6))
+   (digit-button :digit-7 "7" [255 285] (enter-digit 7))
+   (digit-button :digit-8 "8" [355 285] (enter-digit 8))
+   (digit-button :digit-9 "9" [455 285] (enter-digit 9))
+   [:label {:text "CONSOLE ACCESS"
             :font :big
-            :origin [20 300]
-            :extents [30 90]
-            :text-color :secondary
+            :origin [535 440]
+            :extents [215 90]
+            :text-color :primary
+            :text-align :center
+            :text-valign :baseline
             :color :text}]])
 
 
