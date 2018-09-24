@@ -104,18 +104,14 @@ const std::string font_vertex_shader_source =
 "#version 100\n"
 #endif // __APPLE__
 "uniform mat4 u_Projection;\n"
-"uniform vec2 u_ScreenSize;\n"
 "attribute vec4 a_Position;\n"
 "attribute vec4 a_Color;\n"
 "attribute vec2 a_TexCoord;\n"
-"varying vec2 v_BackgroundTexCoord;\n"
 "varying vec4 v_Color;\n"
 "varying vec2 v_TexCoord;\n"
-HCC_GRAPHICS_TO_LINEAR
 "void main()\n"
 "{\n"
-"    v_BackgroundTexCoord = a_Position.xy / u_ScreenSize;\n"
-"    v_Color = vec4(toLinear(a_Color.rgb), a_Color.a);\n"
+"    v_Color = a_Color;\n"
 "    v_TexCoord = a_TexCoord;\n"
 "    gl_Position = u_Projection * a_Position;\n"
 "}\n";
@@ -126,22 +122,17 @@ const std::string font_fragment_shader_source =
 "precision mediump float;\n"
 #endif // __APPLE__
 "uniform sampler2D u_Texture;\n"
-"uniform sampler2D u_BackgroundTexture;\n"
-"varying vec2 v_BackgroundTexCoord;\n"
 "varying vec4 v_Color;\n"
 "varying vec2 v_TexCoord;\n"
-HCC_GRAPHICS_TO_LINEAR
-HCC_GRAPHICS_TO_SRGB
 "void main()\n"
 "{\n"
 "    float alpha = texture2D(u_Texture, v_TexCoord).a;\n"
 "    if (alpha == 0.0)\n"
 "        discard;\n"
-"    vec3 backgroundColor = toLinear(texture2D(u_BackgroundTexture, v_BackgroundTexCoord).rgb);\n"
-"    gl_FragColor = vec4(tosRGB(mix(backgroundColor, v_Color.rgb, v_Color.a * alpha)), 1);\n"
+"    gl_FragColor = vec4(v_Color.rgb, v_Color.a * alpha);\n"
 "}\n";
 
-const std::string background_vertex_shader_source =
+const std::string combine_vertex_shader_source =
 #ifndef __APPLE__
 "#version 100\n"
 #endif // __APPLE__
@@ -155,16 +146,21 @@ const std::string background_vertex_shader_source =
 "    gl_Position = u_Projection * a_Position;\n"
 "}\n";
 
-const std::string background_fragment_shader_source =
+const std::string combine_fragment_shader_source =
 #ifndef __APPLE__
 "#version 100\n"
 "precision mediump float;\n"
 #endif // __APPLE__
-"uniform sampler2D u_Texture;\n"
+"uniform sampler2D u_ArcTexture;\n"
+"uniform sampler2D u_FontTexture;\n"
 "varying vec2 v_TexCoord;\n"
+HCC_GRAPHICS_TO_LINEAR
+HCC_GRAPHICS_TO_SRGB
 "void main()\n"
 "{\n"
-"    gl_FragColor = texture2D(u_Texture, v_TexCoord);\n"
+"    vec3 arcColor = texture2D(u_ArcTexture, v_TexCoord).rgb;\n"
+"    vec4 fontColor = texture2D(u_FontTexture, v_TexCoord);\n"
+"    gl_FragColor = vec4(tosRGB(mix(toLinear(arcColor), toLinear(fontColor.rgb), fontColor.a)), 1);\n"
 "}\n";
 
 #ifndef __APPLE__
@@ -263,7 +259,7 @@ struct State
     GLuint font_color_buffer{};
     GLuint font_coord_buffer{};
     std::vector<FontDrawCall> font_draw_calls;
-    GLuint background_vertex_buffer{};
+    GLuint combine_vertex_buffer{};
 
     GLuint arc_vertex_shader{};
     GLuint arc_fragment_shader{};
@@ -271,14 +267,16 @@ struct State
     GLuint font_vertex_shader{};
     GLuint font_fragment_shader{};
     GLuint font_program{};
-    GLuint background_vertex_shader{};
-    GLuint background_fragment_shader{};
-    GLuint background_program{};
+    GLuint combine_vertex_shader{};
+    GLuint combine_fragment_shader{};
+    GLuint combine_program{};
 
     std::array<GLfloat, 16> projection{};
 
     GLuint arc_fbo;
     GLuint arc_texture;
+    GLuint font_fbo;
+    GLuint font_texture;
 };
 
 State *state = nullptr;
@@ -302,7 +300,7 @@ void init_buffers()
     glGenBuffers(1, &state->font_vertex_buffer);
     glGenBuffers(1, &state->font_color_buffer);
     glGenBuffers(1, &state->font_coord_buffer);
-    glGenBuffers(1, &state->background_vertex_buffer);
+    glGenBuffers(1, &state->combine_vertex_buffer);
 }
 
 void init_framebuffers()
@@ -322,6 +320,24 @@ void init_framebuffers()
     if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
     {
         std::cerr << "Arc framebuffer incomplete" << std::endl;
+        std::abort();
+    }
+
+    glGenTextures(1, &state->font_texture);
+    glBindTexture(GL_TEXTURE_2D, state->font_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, get_display_width(), get_display_height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    glGenFramebuffers(1, &state->font_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, state->font_fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->font_texture, 0);
+
+    if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
+    {
+        std::cerr << "Font framebuffer incomplete" << std::endl;
         std::abort();
     }
 
@@ -378,9 +394,9 @@ void init_shaders()
     state->font_fragment_shader = create_shader(GL_FRAGMENT_SHADER, font_fragment_shader_source);
     state->font_program = create_program(state->font_vertex_shader, state->font_fragment_shader);
 
-    state->background_vertex_shader = create_shader(GL_VERTEX_SHADER, background_vertex_shader_source);
-    state->background_fragment_shader = create_shader(GL_FRAGMENT_SHADER, background_fragment_shader_source);
-    state->background_program = create_program(state->background_vertex_shader, state->background_fragment_shader);
+    state->combine_vertex_shader = create_shader(GL_VERTEX_SHADER, combine_vertex_shader_source);
+    state->combine_fragment_shader = create_shader(GL_FRAGMENT_SHADER, combine_fragment_shader_source);
+    state->combine_program = create_program(state->combine_vertex_shader, state->combine_fragment_shader);
 }
 
 void set_vertex_attrib(GLuint program, const char *name, int size, GLuint buffer)
@@ -606,9 +622,6 @@ std::int64_t initialize_graphics(std::int64_t scale)
     init_framebuffers();
     init_projection(get_display_width() * ::state->display_scale, get_display_height() * ::state->display_scale);
 
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_DST_ALPHA);
-
     FT_Init_FreeType(&::state->freetype);
 
     return 0;
@@ -762,8 +775,13 @@ std::int64_t render()
 {
     if (!state)
         return 0;
+
+    glEnable(GL_BLEND);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_DST_ALPHA);
+
     std::array<GLfloat, 2> screen_size{{GLfloat(get_display_width()), GLfloat(get_display_height())}};
     glBindFramebuffer(GL_FRAMEBUFFER, state->arc_fbo);
+    glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
     set_buffer(state->arc_vertex_buffer, state->arc_vertices);
@@ -781,34 +799,22 @@ std::int64_t render()
     state->arc_colors.clear();
     state->arc_circles.clear();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ONE);
 
-    std::array<GLfloat, 12> screen_vertices{{0, 0, 800, 0, 800, 480, 0, 0, 800, 480, 0, 480}};
-    set_buffer(state->background_vertex_buffer, screen_vertices);
-    glUseProgram(state->background_program);
-    glUniformMatrix4fv(glGetUniformLocation(state->background_program, "u_Projection"), 1, false, state->projection.data());
-    glUniform2fv(glGetUniformLocation(state->background_program, "u_ScreenSize"), 1, screen_size.data());
-    set_vertex_attrib(state->background_program, "a_Position", 2, state->background_vertex_buffer);
-    glUniform1i(glGetUniformLocation(state->background_program, "u_Texture"), 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state->arc_texture);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
+    glBindFramebuffer(GL_FRAMEBUFFER, state->font_fbo);
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
     set_buffer(state->font_vertex_buffer, state->font_vertices);
     set_buffer(state->font_color_buffer, state->font_colors);
     set_buffer(state->font_coord_buffer, state->font_coords);
 
     glUseProgram(state->font_program);
     glUniformMatrix4fv(glGetUniformLocation(state->font_program, "u_Projection"), 1, false, state->projection.data());
-    glUniform2fv(glGetUniformLocation(state->font_program, "u_ScreenSize"), 1, screen_size.data());
     set_vertex_attrib(state->font_program, "a_Position", 2, state->font_vertex_buffer);
     set_vertex_attrib(state->font_program, "a_Color", 4, state->font_color_buffer);
     set_vertex_attrib(state->font_program, "a_TexCoord", 2, state->font_coord_buffer);
     glUniform1i(glGetUniformLocation(state->font_program, "u_Texture"), 0);
-    glUniform1i(glGetUniformLocation(state->font_program, "u_BackgroundTexture"), 1);
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, state->arc_texture);
     glActiveTexture(GL_TEXTURE0);
     for (auto& dc : state->font_draw_calls)
     {
@@ -819,6 +825,23 @@ std::int64_t render()
     state->font_colors.clear();
     state->font_coords.clear();
     state->font_draw_calls.clear();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDisable(GL_BLEND);
+
+    std::array<GLfloat, 12> screen_vertices{{0, 0, 800, 0, 800, 480, 0, 0, 800, 480, 0, 480}};
+    set_buffer(state->combine_vertex_buffer, screen_vertices);
+    glUseProgram(state->combine_program);
+    glUniformMatrix4fv(glGetUniformLocation(state->combine_program, "u_Projection"), 1, false, state->projection.data());
+    glUniform2fv(glGetUniformLocation(state->combine_program, "u_ScreenSize"), 1, screen_size.data());
+    set_vertex_attrib(state->combine_program, "a_Position", 2, state->combine_vertex_buffer);
+    glUniform1i(glGetUniformLocation(state->combine_program, "u_ArcTexture"), 0);
+    glUniform1i(glGetUniformLocation(state->combine_program, "u_FontTexture"), 1);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->arc_texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, state->font_texture);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     return 0;
 }
