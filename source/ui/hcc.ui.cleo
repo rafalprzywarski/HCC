@@ -20,8 +20,8 @@
                    (or (= valign :center) (= valign :baseline-center)) (+ origin-y (/ height 2))
                    (= valign :top) (- (+ origin-y height) margin)
                    :else (+ origin-y margin))]
-    {:text-anchor ({:center :center, :right :right} align :left)
-     :text-vanchor ({:bottom :bottom, :center :center, :baseline-center :baseline-center, :top :top} valign :baseline) ; TODO: use hash-set
+    {:text-anchor (#{:center :right} align :left)
+     :text-vanchor (#{:bottom :center :baseline-center :top} valign :baseline)
      :origin [origin-x origin-y]}))
 
 
