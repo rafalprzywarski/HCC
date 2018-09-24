@@ -18,6 +18,14 @@
 #include <iostream>
 #include <unordered_map>
 
+extern "C"
+{
+
+std::int64_t get_display_width();
+std::int64_t get_display_height();
+
+}
+
 namespace
 {
 
@@ -96,17 +104,17 @@ const std::string font_vertex_shader_source =
 "#version 100\n"
 #endif // __APPLE__
 "uniform mat4 u_Projection;\n"
+"uniform vec2 u_ScreenSize;\n"
 "attribute vec4 a_Position;\n"
-"attribute vec3 a_BackgroundColor;\n"
 "attribute vec4 a_Color;\n"
 "attribute vec2 a_TexCoord;\n"
-"varying vec3 v_BackgroundColor;\n"
+"varying vec2 v_BackgroundTexCoord;\n"
 "varying vec4 v_Color;\n"
 "varying vec2 v_TexCoord;\n"
 HCC_GRAPHICS_TO_LINEAR
 "void main()\n"
 "{\n"
-"    v_BackgroundColor = toLinear(a_BackgroundColor);\n"
+"    v_BackgroundTexCoord = a_Position.xy / u_ScreenSize;\n"
 "    v_Color = vec4(toLinear(a_Color.rgb), a_Color.a);\n"
 "    v_TexCoord = a_TexCoord;\n"
 "    gl_Position = u_Projection * a_Position;\n"
@@ -118,16 +126,45 @@ const std::string font_fragment_shader_source =
 "precision mediump float;\n"
 #endif // __APPLE__
 "uniform sampler2D u_Texture;\n"
-"varying vec3 v_BackgroundColor;\n"
+"uniform sampler2D u_BackgroundTexture;\n"
+"varying vec2 v_BackgroundTexCoord;\n"
 "varying vec4 v_Color;\n"
 "varying vec2 v_TexCoord;\n"
+HCC_GRAPHICS_TO_LINEAR
 HCC_GRAPHICS_TO_SRGB
 "void main()\n"
 "{\n"
 "    float alpha = texture2D(u_Texture, v_TexCoord).a;\n"
 "    if (alpha == 0.0)\n"
 "        discard;\n"
-"    gl_FragColor = vec4(tosRGB(mix(v_BackgroundColor, v_Color.rgb, v_Color.a * alpha)), 1);\n"
+"    vec3 backgroundColor = toLinear(texture2D(u_BackgroundTexture, v_BackgroundTexCoord).rgb);\n"
+"    gl_FragColor = vec4(tosRGB(mix(backgroundColor, v_Color.rgb, v_Color.a * alpha)), 1);\n"
+"}\n";
+
+const std::string background_vertex_shader_source =
+#ifndef __APPLE__
+"#version 100\n"
+#endif // __APPLE__
+"uniform mat4 u_Projection;\n"
+"uniform vec2 u_ScreenSize;\n"
+"attribute vec4 a_Position;\n"
+"varying vec2 v_TexCoord;\n"
+"void main()\n"
+"{\n"
+"    v_TexCoord = a_Position.xy / u_ScreenSize;\n"
+"    gl_Position = u_Projection * a_Position;\n"
+"}\n";
+
+const std::string background_fragment_shader_source =
+#ifndef __APPLE__
+"#version 100\n"
+"precision mediump float;\n"
+#endif // __APPLE__
+"uniform sampler2D u_Texture;\n"
+"varying vec2 v_TexCoord;\n"
+"void main()\n"
+"{\n"
+"    gl_FragColor = texture2D(u_Texture, v_TexCoord);\n"
 "}\n";
 
 #ifndef __APPLE__
@@ -217,17 +254,16 @@ struct State
     std::vector<GLfloat> arc_colors;
     std::vector<GLfloat> arc_circles;
     std::vector<GLfloat> font_vertices;
-    std::vector<GLfloat> font_background_colors;
     std::vector<GLfloat> font_colors;
     std::vector<GLfloat> font_coords;
     GLuint arc_vertex_buffer{};
     GLuint arc_color_buffer{};
     GLuint arc_circle_buffer{};
     GLuint font_vertex_buffer{};
-    GLuint font_background_color_buffer{};
     GLuint font_color_buffer{};
     GLuint font_coord_buffer{};
     std::vector<FontDrawCall> font_draw_calls;
+    GLuint background_vertex_buffer{};
 
     GLuint arc_vertex_shader{};
     GLuint arc_fragment_shader{};
@@ -235,8 +271,14 @@ struct State
     GLuint font_vertex_shader{};
     GLuint font_fragment_shader{};
     GLuint font_program{};
+    GLuint background_vertex_shader{};
+    GLuint background_fragment_shader{};
+    GLuint background_program{};
 
     std::array<GLfloat, 16> projection{};
+
+    GLuint arc_fbo;
+    GLuint arc_texture;
 };
 
 State *state = nullptr;
@@ -258,9 +300,32 @@ void init_buffers()
     glGenBuffers(1, &state->arc_color_buffer);
     glGenBuffers(1, &state->arc_circle_buffer);
     glGenBuffers(1, &state->font_vertex_buffer);
-    glGenBuffers(1, &state->font_background_color_buffer);
     glGenBuffers(1, &state->font_color_buffer);
     glGenBuffers(1, &state->font_coord_buffer);
+    glGenBuffers(1, &state->background_vertex_buffer);
+}
+
+void init_framebuffers()
+{
+    glGenTextures(1, &state->arc_texture);
+    glBindTexture(GL_TEXTURE_2D, state->arc_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, get_display_width(), get_display_height(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+
+    glGenFramebuffers(1, &state->arc_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, state->arc_fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->arc_texture, 0);
+
+    if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
+    {
+        std::cerr << "Arc framebuffer incomplete" << std::endl;
+        std::abort();
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 GLuint create_shader(GLenum type, const std::string& source)
@@ -312,6 +377,10 @@ void init_shaders()
     state->font_vertex_shader = create_shader(GL_VERTEX_SHADER, font_vertex_shader_source);
     state->font_fragment_shader = create_shader(GL_FRAGMENT_SHADER, font_fragment_shader_source);
     state->font_program = create_program(state->font_vertex_shader, state->font_fragment_shader);
+
+    state->background_vertex_shader = create_shader(GL_VERTEX_SHADER, background_vertex_shader_source);
+    state->background_fragment_shader = create_shader(GL_FRAGMENT_SHADER, background_fragment_shader_source);
+    state->background_program = create_program(state->background_vertex_shader, state->background_fragment_shader);
 }
 
 void set_vertex_attrib(GLuint program, const char *name, int size, GLuint buffer)
@@ -322,7 +391,8 @@ void set_vertex_attrib(GLuint program, const char *name, int size, GLuint buffer
     glEnableVertexAttribArray(location);
 }
 
-void set_buffer(GLuint buffer, const std::vector<GLfloat>& data)
+template <typename Container>
+void set_buffer(GLuint buffer, const Container& data)
 {
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(data[0]) * data.size(), data.data(), GL_DYNAMIC_DRAW);
@@ -334,10 +404,10 @@ GLuint create_texture(GLsizei width, GLsizei height, const void *data)
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, width, height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, data);
     return texture;
 }
@@ -490,9 +560,6 @@ std::int64_t get_display_height()
         return 0;
     return state->display_height;
 }
-#else
-std::int64_t get_display_width();
-std::int64_t get_display_height();
 #endif // __APPLE__
 
 std::int64_t initialize_graphics(std::int64_t scale)
@@ -536,6 +603,7 @@ std::int64_t initialize_graphics(std::int64_t scale)
 
     init_shaders();
     init_buffers();
+    init_framebuffers();
     init_projection(get_display_width() * ::state->display_scale, get_display_height() * ::state->display_scale);
 
     glEnable(GL_BLEND);
@@ -628,7 +696,7 @@ std::int64_t text(
     std::int64_t x, std::int64_t y,
     std::int64_t anchor, std::int64_t vanchor,
     std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a,
-    std::int64_t bg_r, std::int64_t bg_g, std::int64_t bg_b)
+    std::int64_t, std::int64_t, std::int64_t)
 {
     x *= state->display_scale; y *= state->display_scale;
     auto& font = ::state->fonts.at(font_id);
@@ -678,15 +746,11 @@ std::int64_t text(
             GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
         }};
         std::array<GLfloat, 4> color{{c_r / 255.0f, c_g / 255.0f, c_b / 255.0f, c_a / 255.0f}};
-        std::array<GLfloat, 3> bg_color{{bg_r / 255.0f, bg_g / 255.0f, bg_b / 255.0f}};
 
         ::state->font_vertices.insert(::state->font_vertices.end(), vs.begin(), vs.end());
         ::state->font_coords.insert(::state->font_coords.end(), tc.begin(), tc.end());
         for (int i = 0; i < 6; ++i)
-        {
             ::state->font_colors.insert(end(::state->font_colors), begin(color), end(color));
-            ::state->font_background_colors.insert(end(::state->font_background_colors), begin(bg_color), end(bg_color));
-        }
 
         pen_x += char_.advance_x;
         prev_ch = ch;
@@ -699,6 +763,10 @@ std::int64_t render()
 {
     if (!state)
         return 0;
+    std::array<GLfloat, 2> screen_size{{GLfloat(get_display_width()), GLfloat(get_display_height())}};
+    glBindFramebuffer(GL_FRAMEBUFFER, state->arc_fbo);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     set_buffer(state->arc_vertex_buffer, state->arc_vertices);
     set_buffer(state->arc_color_buffer, state->arc_colors);
     set_buffer(state->arc_circle_buffer, state->arc_circles);
@@ -714,19 +782,34 @@ std::int64_t render()
     state->arc_colors.clear();
     state->arc_circles.clear();
 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    std::array<GLfloat, 12> screen_vertices{{0, 0, 800, 0, 800, 480, 0, 0, 800, 480, 0, 480}};
+    set_buffer(state->background_vertex_buffer, screen_vertices);
+    glUseProgram(state->background_program);
+    glUniformMatrix4fv(glGetUniformLocation(state->background_program, "u_Projection"), 1, false, state->projection.data());
+    glUniform2fv(glGetUniformLocation(state->background_program, "u_ScreenSize"), 1, screen_size.data());
+    set_vertex_attrib(state->background_program, "a_Position", 2, state->background_vertex_buffer);
+    glUniform1i(glGetUniformLocation(state->background_program, "u_Texture"), 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->arc_texture);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
     set_buffer(state->font_vertex_buffer, state->font_vertices);
-    set_buffer(state->font_background_color_buffer, state->font_background_colors);
     set_buffer(state->font_color_buffer, state->font_colors);
     set_buffer(state->font_coord_buffer, state->font_coords);
 
     glUseProgram(state->font_program);
     glUniformMatrix4fv(glGetUniformLocation(state->font_program, "u_Projection"), 1, false, state->projection.data());
+    glUniform2fv(glGetUniformLocation(state->font_program, "u_ScreenSize"), 1, screen_size.data());
     set_vertex_attrib(state->font_program, "a_Position", 2, state->font_vertex_buffer);
-    set_vertex_attrib(state->font_program, "a_BackgroundColor", 3, state->font_background_color_buffer);
     set_vertex_attrib(state->font_program, "a_Color", 4, state->font_color_buffer);
     set_vertex_attrib(state->font_program, "a_TexCoord", 2, state->font_coord_buffer);
     glUniform1i(glGetUniformLocation(state->font_program, "u_Texture"), 0);
+    glUniform1i(glGetUniformLocation(state->font_program, "u_BackgroundTexture"), 1);
 
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, state->arc_texture);
     glActiveTexture(GL_TEXTURE0);
     for (auto& dc : state->font_draw_calls)
     {
@@ -735,7 +818,6 @@ std::int64_t render()
     }
     state->font_vertices.clear();
     state->font_colors.clear();
-    state->font_background_colors.clear();
     state->font_coords.clear();
     state->font_draw_calls.clear();
 
