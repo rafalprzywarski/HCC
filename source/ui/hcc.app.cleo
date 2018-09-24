@@ -224,7 +224,10 @@
 
 
 (defn enter-digit [n]
-  (fn [state] (assoc state :code (str (:code state) n))))
+  (fn [state] (let [code (:code state)]
+                (if (< (count code) 10)
+                  (assoc state :code (str (:code state) n))
+                  state))))
 
 
 (defn reset-code [state]
@@ -250,8 +253,16 @@
             :on-click on-click}])
 
 
+(defn repeat-char [n c]
+  (loop [n n
+         r ""]
+    (if (< 0 n)
+      (recur (dec n) (str r c))
+      r)))
+
+
 (ui/defc security-code [{:keys [code]} origin]
-  [[:label {:text code
+  [[:label {:text (repeat-char (count code) "*")
             :font :big
             :origin origin
             :extents [290 50]
@@ -342,5 +353,5 @@
   (reset! current-ui {:ui security-ui :palette security-palette})
   (main-loop-for! 1)
   (ui/load-fonts! fonts)
-  (main-loop-for! 200)
+  (main-loop-for! 2000)
   (ui/shutdown!))
