@@ -17,7 +17,7 @@
   (arc! "arc" :int64 [:int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
   (rect! "rect" :int64 [:int64 :int64 :int64 :int64 :int64 :int64 :int64])
   (load-font "load_font" :int64 [:string :int64])
-  (text! "text" :int64 [:int64 :string :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
+  (text! "text" :int64 [:int64 :string :int64 :int64 :int64 :int64 :int64 :int64 :int64 :int64])
   (swap-buffers! "swap_buffers" :int64 [])
   (get-display-width "get_display_width" :int64 [])
   (get-display-height "get_display_height" :int64 [])

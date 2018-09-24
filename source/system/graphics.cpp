@@ -695,8 +695,7 @@ std::int64_t text(
     std::int64_t font_id, const char *text,
     std::int64_t x, std::int64_t y,
     std::int64_t anchor, std::int64_t vanchor,
-    std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a,
-    std::int64_t, std::int64_t, std::int64_t)
+    std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a)
 {
     x *= state->display_scale; y *= state->display_scale;
     auto& font = ::state->fonts.at(font_id);

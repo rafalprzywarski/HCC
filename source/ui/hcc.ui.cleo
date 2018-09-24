@@ -46,7 +46,6 @@
      (merge {:type :text
              :font font
              :text text
-             :color color
              :text-color text-color}
             (align-text text text-align text-valign margin origin extents))]))
 
@@ -79,7 +78,6 @@
          (merge {:type :text
                  :font font
                  :text text
-                 :color color
                  :text-color text-color}
                 (align-text text text-align text-valign margin (v2+ origin [radius 0]) (v2+ extents [(* -2 radius) 0])))])
       [{:type :rect
@@ -89,7 +87,6 @@
        (merge {:type :text
                :font font
                :text text
-               :color color
                :text-color text-color}
               (align-text text text-align text-valign margin origin extents))])))
 
@@ -157,15 +154,13 @@
            (si/rect! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b))
    :text (fn [{[origin-x origin-y] :origin
                [tr tg tb ta] :text-color
-               [r g b] :color
                :keys [font text text-anchor text-vanchor]}]
            (if @fonts
              (si/text! (@fonts font)
                        text
                        origin-x origin-y
                        ({:center 0, :right 1} text-anchor -1) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-vanchor 0)
-                       tr tg tb (or ta 255)
-                       r g b)))})
+                       tr tg tb (or ta 255))))})
 
 
 (defn render-scene! [scene]
