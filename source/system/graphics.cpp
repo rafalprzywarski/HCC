@@ -311,7 +311,7 @@ void init_framebuffers()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, get_display_width(), get_display_height(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, get_display_width() * state->display_scale, get_display_height() * state->display_scale, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
     glGenFramebuffers(1, &state->arc_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, state->arc_fbo);
@@ -329,7 +329,7 @@ void init_framebuffers()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, get_display_width(), get_display_height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, get_display_width() * state->display_scale, get_display_height() * state->display_scale, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
     glGenFramebuffers(1, &state->font_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, state->font_fbo);
@@ -779,7 +779,7 @@ std::int64_t render()
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_DST_ALPHA);
 
-    std::array<GLfloat, 2> screen_size{{GLfloat(get_display_width()), GLfloat(get_display_height())}};
+    std::array<GLfloat, 2> screen_size{{GLfloat(get_display_width() * state->display_scale), GLfloat(get_display_height() * state->display_scale)}};
     glBindFramebuffer(GL_FRAMEBUFFER, state->arc_fbo);
     glClearColor(0, 0, 0, 1);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -829,7 +829,7 @@ std::int64_t render()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_BLEND);
 
-    std::array<GLfloat, 12> screen_vertices{{0, 0, 800, 0, 800, 480, 0, 0, 800, 480, 0, 480}};
+    std::array<GLfloat, 12> screen_vertices{{0, 0, screen_size[0], 0, screen_size[0], screen_size[1], 0, 0, screen_size[0], screen_size[1], 0, screen_size[1]}};
     set_buffer(state->combine_vertex_buffer, screen_vertices);
     glUseProgram(state->combine_program);
     glUniformMatrix4fv(glGetUniformLocation(state->combine_program, "u_Projection"), 1, false, state->projection.data());
