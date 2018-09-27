@@ -4,6 +4,7 @@
 
 
 (def fonts (atom nil))
+(def images (atom nil))
 (def ui-state (atom nil))
 
 
@@ -51,9 +52,9 @@
 
 
 (defn render-button [palette
-                             {[width height] :extents
-                              :keys [id origin extents color font text text-color text-align text-valign margin button-style]}
-                             {pressed-id :pressed}]
+                     {[width height] :extents
+                      :keys [id origin extents color font text text-color text-align text-valign margin button-style]}
+                     {pressed-id :pressed}]
   (let [color (if (and id (= id pressed-id)) :highlight color)
         color (palette color)
         text-color (palette text-color)]
@@ -119,11 +120,22 @@
       :color color}]))
 
 
+(defn render-image [palette
+                    {:keys [origin image anchor vanchor]}
+                    state]
+  [{:type :image
+    :origin origin
+    :image image
+    :anchor anchor
+    :vanchor vanchor}])
+
+
 (def ui-renderers
   {:shape render-shape
    :label render-label
    :button render-button
-   :top-left-swept render-top-left-swept})
+   :top-left-swept render-top-left-swept
+   :image render-image})
 
 
 (defn mapcatv [f coll]
@@ -160,7 +172,14 @@
                        text
                        origin-x origin-y
                        ({:center 0, :right 1} text-anchor -1) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-vanchor 0)
-                       tr tg tb (or ta 255))))})
+                       tr tg tb (or ta 255))))
+   :image (fn [{[origin-x origin-y] :origin
+                :keys [image anchor vanchor]}]
+            (when @images
+              (si/image! (@images image)
+                         origin-x origin-y
+                         ({:center 0, :right 1} anchor -1)
+                         ({:center 0, :bottom 1} vanchor -1))))})
 
 
 (defn render-scene! [scene]
@@ -292,6 +311,14 @@
                          {}
                          fs))
   (println "loaded" (count @fonts) "fonts"))
+
+
+(defn load-images! [imgs]
+  (reset! images (reduce1 (fn [out {:keys [name path]}]
+                            (assoc out name (si/load-image path)))
+                          {}
+                          imgs))
+  (println "loaded" (count @images) "images"))
 
 
 (defn initialize! [scale]

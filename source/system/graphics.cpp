@@ -17,6 +17,8 @@
 #include <numeric>
 #include <iostream>
 #include <unordered_map>
+#include <png.h>
+#include <cstring>
 
 extern "C"
 {
@@ -51,6 +53,37 @@ constexpr int VA_TOP = 3;
 "        vec3(1.055) * pow(color, vec3(1.0 / 2.4)) - vec3(0.055),\n" \
 "        vec3(greaterThan(color, vec3(0.0031308))));\n" \
 "}\n"
+
+const std::string image_vertex_shader_source =
+#ifndef __APPLE__
+"#version 100\n"
+#endif // __APPLE__
+"uniform mat4 u_Projection;\n"
+"attribute vec4 a_Position;\n"
+"attribute vec2 a_TexCoord;\n"
+"varying vec2 v_TexCoord;\n"
+"void main()\n"
+"{\n"
+"    v_TexCoord = a_TexCoord;\n"
+"    gl_Position = u_Projection * a_Position;\n"
+"}\n";
+
+const std::string image_fragment_shader_source =
+#ifndef __APPLE__
+"#version 100\n"
+"precision mediump float;\n"
+#endif // __APPLE__
+"uniform sampler2D u_Texture;\n"
+"varying vec2 v_TexCoord;\n"
+HCC_GRAPHICS_TO_LINEAR
+HCC_GRAPHICS_TO_SRGB
+"void main()\n"
+"{\n"
+"    vec4 color = texture2D(u_Texture, v_TexCoord);\n"
+"    if (color.a == 0.0)\n"
+"        discard;\n"
+"    gl_FragColor = vec4(tosRGB(toLinear(color.rgb) * color.a), 1);\n"
+"}\n";
 
 const std::string arc_vertex_shader_source =
 #ifndef __APPLE__
@@ -96,7 +129,7 @@ HCC_GRAPHICS_TO_SRGB
 "    float alpha = smoothSample();\n"
 "    if (alpha == 0.0)\n"
 "        discard;\n"
-"    gl_FragColor = vec4(tosRGB(v_Color.rgb * alpha), 1);\n"
+"    gl_FragColor = vec4(tosRGB(v_Color.rgb), alpha);\n"
 "}\n";
 
 const std::string font_vertex_shader_source =
@@ -151,6 +184,7 @@ const std::string combine_fragment_shader_source =
 "#version 100\n"
 "precision mediump float;\n"
 #endif // __APPLE__
+"uniform sampler2D u_ImageTexture;\n"
 "uniform sampler2D u_ArcTexture;\n"
 "uniform sampler2D u_FontTexture;\n"
 "varying vec2 v_TexCoord;\n"
@@ -158,9 +192,10 @@ HCC_GRAPHICS_TO_LINEAR
 HCC_GRAPHICS_TO_SRGB
 "void main()\n"
 "{\n"
-"    vec3 arcColor = texture2D(u_ArcTexture, v_TexCoord).rgb;\n"
+"    vec3 imageColor = texture2D(u_ImageTexture, v_TexCoord).rgb;\n"
+"    vec4 arcColor = texture2D(u_ArcTexture, v_TexCoord);\n"
 "    vec4 fontColor = texture2D(u_FontTexture, v_TexCoord);\n"
-"    gl_FragColor = vec4(tosRGB(mix(toLinear(arcColor), toLinear(fontColor.rgb), fontColor.a)), 1);\n"
+"    gl_FragColor = vec4(tosRGB(mix(mix(toLinear(imageColor), toLinear(arcColor.rgb), arcColor.a), toLinear(fontColor.rgb), fontColor.a)), 1);\n"
 "}\n";
 
 #ifndef __APPLE__
@@ -192,13 +227,13 @@ struct FontDrawCall
     FontDrawCall(GLint offset, GLsizei size, GLuint texture) : offset(offset), size(size), texture(texture) { }
 };
 
-struct Image
+struct FontImage
 {
     unsigned width{}, height{};
     std::vector<std::uint8_t> alpha;
 
-    Image() = default;
-    Image(unsigned width, unsigned height)
+    FontImage() = default;
+    FontImage(unsigned width, unsigned height)
         : width(width), height(height), alpha(width * height, 0) { }
 };
 
@@ -217,7 +252,7 @@ struct RasterizedFont
 {
     int precision{};
     int capital_ascender{};
-    Image image;
+    FontImage image;
     std::unordered_map<char, std::unordered_map<char, int>> kerning;
     std::unordered_map<char, FontChar> chars;
 };
@@ -230,6 +265,15 @@ struct Font
     GLuint texture;
     std::unordered_map<char, std::unordered_map<char, int>> kerning;
     std::unordered_map<char, FontChar> chars;
+};
+
+struct Image
+{
+    int texture_width{}, texture_height{};
+    GLuint texture{};
+
+    Image() = default;
+    Image(int width, int height, GLuint texture) : texture_width(width), texture_height(height), texture(texture) {}
 };
 
 struct State
@@ -245,13 +289,19 @@ struct State
     FT_Library freetype;
 
     std::vector<Font> fonts;
+    std::vector<Image> images;
 
+    std::vector<GLfloat> image_vertices;
+    std::vector<GLfloat> image_coords;
     std::vector<GLfloat> arc_vertices;
     std::vector<GLfloat> arc_colors;
     std::vector<GLfloat> arc_circles;
     std::vector<GLfloat> font_vertices;
     std::vector<GLfloat> font_colors;
     std::vector<GLfloat> font_coords;
+    GLuint image_vertex_buffer{};
+    GLuint image_coord_buffer{};
+    std::vector<FontDrawCall> image_draw_calls;
     GLuint arc_vertex_buffer{};
     GLuint arc_color_buffer{};
     GLuint arc_circle_buffer{};
@@ -261,6 +311,9 @@ struct State
     std::vector<FontDrawCall> font_draw_calls;
     GLuint combine_vertex_buffer{};
 
+    GLuint image_vertex_shader{};
+    GLuint image_fragment_shader{};
+    GLuint image_program{};
     GLuint arc_vertex_shader{};
     GLuint arc_fragment_shader{};
     GLuint arc_program{};
@@ -273,6 +326,8 @@ struct State
 
     std::array<GLfloat, 16> projection{};
 
+    GLuint image_fbo;
+    GLuint image_texture;
     GLuint arc_fbo;
     GLuint arc_texture;
     GLuint font_fbo;
@@ -294,6 +349,8 @@ void init_projection(int width, int height)
 
 void init_buffers()
 {
+    glGenBuffers(1, &state->image_vertex_buffer);
+    glGenBuffers(1, &state->image_coord_buffer);
     glGenBuffers(1, &state->arc_vertex_buffer);
     glGenBuffers(1, &state->arc_color_buffer);
     glGenBuffers(1, &state->arc_circle_buffer);
@@ -303,43 +360,35 @@ void init_buffers()
     glGenBuffers(1, &state->combine_vertex_buffer);
 }
 
+std::pair<GLuint, GLuint> create_framebuffer(GLenum format)
+{
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, get_display_width() * state->display_scale, get_display_height() * state->display_scale, 0, format, GL_UNSIGNED_BYTE, nullptr);
+
+    GLuint fbo;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+
+    if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
+    {
+        std::cerr << "Framebuffer incomplete" << std::endl;
+        std::abort();
+    }
+    return {fbo, texture};
+}
+
 void init_framebuffers()
 {
-    glGenTextures(1, &state->arc_texture);
-    glBindTexture(GL_TEXTURE_2D, state->arc_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, get_display_width() * state->display_scale, get_display_height() * state->display_scale, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-
-    glGenFramebuffers(1, &state->arc_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, state->arc_fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->arc_texture, 0);
-
-    if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
-    {
-        std::cerr << "Arc framebuffer incomplete" << std::endl;
-        std::abort();
-    }
-
-    glGenTextures(1, &state->font_texture);
-    glBindTexture(GL_TEXTURE_2D, state->font_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, get_display_width() * state->display_scale, get_display_height() * state->display_scale, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-
-    glGenFramebuffers(1, &state->font_fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, state->font_fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state->font_texture, 0);
-
-    if (GL_FRAMEBUFFER_COMPLETE != glCheckFramebufferStatus(GL_FRAMEBUFFER))
-    {
-        std::cerr << "Font framebuffer incomplete" << std::endl;
-        std::abort();
-    }
+    std::tie(state->image_fbo, state->image_texture) = create_framebuffer(GL_RGB);
+    std::tie(state->arc_fbo, state->arc_texture) = create_framebuffer(GL_RGBA);
+    std::tie(state->font_fbo, state->font_texture) = create_framebuffer(GL_RGBA);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -386,6 +435,10 @@ GLuint create_program(GLuint vs, GLuint fs)
 
 void init_shaders()
 {
+    state->image_vertex_shader = create_shader(GL_VERTEX_SHADER, image_vertex_shader_source);
+    state->image_fragment_shader = create_shader(GL_FRAGMENT_SHADER, image_fragment_shader_source);
+    state->image_program = create_program(state->image_vertex_shader, state->image_fragment_shader);
+
     state->arc_vertex_shader = create_shader(GL_VERTEX_SHADER, arc_vertex_shader_source);
     state->arc_fragment_shader = create_shader(GL_FRAGMENT_SHADER, arc_fragment_shader_source);
     state->arc_program = create_program(state->arc_vertex_shader, state->arc_fragment_shader);
@@ -429,9 +482,9 @@ GLuint create_texture(GLsizei width, GLsizei height, const void *data)
 }
 
 
-Image downscale(FT_Bitmap bitmap, unsigned n, unsigned offset, unsigned y_offset)
+FontImage downscale(FT_Bitmap bitmap, unsigned n, unsigned offset, unsigned y_offset)
 {
-    Image g{(bitmap.width + offset + (n - 1)) / n, (bitmap.rows + y_offset + (n - 1)) / n};
+    FontImage g{(bitmap.width + offset + (n - 1)) / n, (bitmap.rows + y_offset + (n - 1)) / n};
     auto pitch = bitmap.pitch;
     for (unsigned gy = 0; gy < g.height; ++gy)
         for (unsigned gx = 0; gx < g.width; ++gx)
@@ -448,7 +501,7 @@ Image downscale(FT_Bitmap bitmap, unsigned n, unsigned offset, unsigned y_offset
     return g;
 }
 
-void blit(Image& dst, unsigned dx, unsigned dy, const Image& src)
+void blit(FontImage& dst, unsigned dx, unsigned dy, const FontImage& src)
 {
     if (dx >= dst.width)
         return;
@@ -460,7 +513,7 @@ RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned p
 {
     RasterizedFont font;
     font.precision = precision;
-    Image img{2048, 2048};
+    FontImage img{2048, 2048};
     unsigned dx = 0, dy = 0, row_height = 0;
     bool too_big = false;
     for (auto a : chars)
@@ -771,17 +824,143 @@ std::int64_t text(
     return 0;
 }
 
+std::int64_t load_image(const char *path)
+{
+    auto fp = std::fopen(path, "rb");
+    if (!fp)
+    {
+        std::cerr << "error loading " << path << std::endl;
+        std::abort();
+    }
+
+    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    png_infop info = png_create_info_struct(png);
+
+    if (setjmp(png_jmpbuf(png)))
+    {
+        std::cerr << "error loading " << path << std::endl;
+        std::abort();
+    }
+
+    png_init_io(png, fp);
+    png_read_info(png, info);
+
+    auto width = png_get_image_width(png, info);
+    auto height = png_get_image_height(png, info);
+    auto color_type = png_get_color_type(png, info);
+    auto bit_depth = png_get_bit_depth(png, info);
+
+    if (bit_depth != 8 || (color_type != PNG_COLOR_TYPE_RGB && color_type != PNG_COLOR_TYPE_RGBA))
+    {
+        std::cerr << "unsupported image format: " << path << std::endl;
+        std::abort();
+    }
+
+    if (png_get_valid(png, info, PNG_INFO_tRNS))
+        png_set_tRNS_to_alpha(png);
+
+    if (color_type == PNG_COLOR_TYPE_RGB)
+        png_set_filler(png, 0xff, PNG_FILLER_AFTER);
+
+    png_read_update_info(png, info);
+
+    auto rows = static_cast<png_bytep *>(std::malloc(sizeof(png_bytep) * height));
+    for (decltype(height) i = 0; i < height; ++i)
+        rows[i] = static_cast<png_byte *>(std::malloc(png_get_rowbytes(png, info)));
+
+    png_read_image(png, rows);
+
+    std::fclose(fp);
+
+    std::vector<std::uint8_t> data(width * height * 4);
+    for (decltype(height) i = 0; i < height; ++i)
+    {
+        std::memcpy(&data[(height - i - 1) * width * 4], rows[i], width * 4);
+        std::free(rows[i]);
+    }
+    std::free(rows);
+
+    GLuint texture{};
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+
+    state->images.emplace_back(width, height, texture);
+
+    std::cout << "loaded " << path << std::endl;
+
+    return state->images.size() - 1;
+}
+
+std::int64_t image(
+    std::int64_t image_id,
+    std::int64_t x, std::int64_t y,
+    std::int64_t anchor, std::int64_t vanchor)
+{
+    const auto& img = ::state->images[image_id];
+    if (anchor > 0)
+        x -= img.texture_width;
+    else if (anchor == 0)
+        x -= img.texture_width / 2;
+    if (vanchor < 0)
+        y -= img.texture_height;
+    else if (vanchor == 0)
+        y -= img.texture_height / 2;
+    std::array<GLfloat, 12> vs{{
+        GLfloat(x), GLfloat(y),
+        GLfloat(x) + img.texture_width, GLfloat(y),
+        GLfloat(x) + img.texture_width, GLfloat(y) + img.texture_height,
+        GLfloat(x), GLfloat(y),
+        GLfloat(x) + img.texture_width, GLfloat(y) + img.texture_height,
+        GLfloat(x), GLfloat(y) + img.texture_height}};
+    std::array<GLfloat, 12> cs{{0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f}};
+
+    ::state->image_vertices.insert(::state->image_vertices.end(), vs.begin(), vs.end());
+    ::state->image_coords.insert(::state->image_coords.end(), cs.begin(), cs.end());
+    ::state->image_draw_calls.emplace_back((::state->image_vertices.size() - vs.size()) / 2, vs.size() / 2, img.texture);
+
+    return 0;
+}
+
 std::int64_t render()
 {
     if (!state)
         return 0;
 
+    glDisable(GL_BLEND);
+    glBindFramebuffer(GL_FRAMEBUFFER, state->image_fbo);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    set_buffer(state->image_vertex_buffer, state->image_vertices);
+    set_buffer(state->image_coord_buffer, state->image_coords);
+    glUseProgram(state->image_program);
+    glUniformMatrix4fv(glGetUniformLocation(state->image_program, "u_Projection"), 1, false, state->projection.data());
+    set_vertex_attrib(state->image_program, "a_Position", 2, state->image_vertex_buffer);
+    set_vertex_attrib(state->image_program, "a_TexCoord", 2, state->image_coord_buffer);
+    glUniform1i(glGetUniformLocation(state->image_program, "u_Texture"), 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    for (auto& dc : state->image_draw_calls)
+    {
+        glBindTexture(GL_TEXTURE_2D, dc.texture);
+        glDrawArrays(GL_TRIANGLES, dc.offset, dc.size);
+    }
+    state->image_vertices.clear();
+    state->image_coords.clear();
+    state->image_draw_calls.clear();
+
     glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_DST_ALPHA);
+    glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
 
     std::array<GLfloat, 2> screen_size{{GLfloat(get_display_width() * state->display_scale), GLfloat(get_display_height() * state->display_scale)}};
     glBindFramebuffer(GL_FRAMEBUFFER, state->arc_fbo);
-    glClearColor(0, 0, 0, 1);
+    glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
 
     set_buffer(state->arc_vertex_buffer, state->arc_vertices);
@@ -835,11 +1014,14 @@ std::int64_t render()
     glUniformMatrix4fv(glGetUniformLocation(state->combine_program, "u_Projection"), 1, false, state->projection.data());
     glUniform2fv(glGetUniformLocation(state->combine_program, "u_ScreenSize"), 1, screen_size.data());
     set_vertex_attrib(state->combine_program, "a_Position", 2, state->combine_vertex_buffer);
-    glUniform1i(glGetUniformLocation(state->combine_program, "u_ArcTexture"), 0);
-    glUniform1i(glGetUniformLocation(state->combine_program, "u_FontTexture"), 1);
+    glUniform1i(glGetUniformLocation(state->combine_program, "u_ImageTexture"), 0);
+    glUniform1i(glGetUniformLocation(state->combine_program, "u_ArcTexture"), 1);
+    glUniform1i(glGetUniformLocation(state->combine_program, "u_FontTexture"), 2);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state->arc_texture);
+    glBindTexture(GL_TEXTURE_2D, state->image_texture);
     glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, state->arc_texture);
+    glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, state->font_texture);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 

@@ -17,6 +17,11 @@
    {:name :tiny :path font-path :size 9}])
 
 
+(def images
+  [{:name :lock
+    :path "assets/lock.png"}])
+
+
 (def main-palette
   {:primary [255 100 72]
    :secondary [108 198 74]
@@ -313,6 +318,14 @@
                          {:type :rect
                           :origin [55 0]
                           :extents [690 40]}]}]
+   [:image {:origin [127 240]
+            :image :lock
+            :anchor :center
+            :vanchor :center}]
+   [:image {:origin [674 240]
+            :image :lock
+            :anchor :center
+            :vanchor :center}]
    [security-code [255 355]]
    (digit-button :digit-clr "RESET" [255 75] reset-code)
    (digit-button :digit-0 "0" [355 75] (enter-digit 0))
@@ -351,6 +364,8 @@
 (defn main []
   (ui/initialize! 1)
   (reset! current-ui {:ui security-ui :palette security-palette})
+  (main-loop-for! 1)
+  (ui/load-images! images)
   (main-loop-for! 1)
   (ui/load-fonts! fonts)
   (main-loop-for! 2000)
