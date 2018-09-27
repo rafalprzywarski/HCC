@@ -129,7 +129,7 @@ HCC_GRAPHICS_TO_SRGB
 "    float alpha = smoothSample();\n"
 "    if (alpha == 0.0)\n"
 "        discard;\n"
-"    gl_FragColor = vec4(tosRGB(v_Color.rgb), alpha);\n"
+"    gl_FragColor = vec4(tosRGB(v_Color.rgb), v_Color.a * alpha);\n"
 "}\n";
 
 const std::string font_vertex_shader_source =
@@ -708,7 +708,7 @@ std::int64_t clear()
 std::int64_t arc(
     std::int64_t x0, std::int64_t y0,
     std::int64_t x1, std::int64_t y1,
-    std::int64_t r, std::int64_t g, std::int64_t b,
+    std::int64_t r, std::int64_t g, std::int64_t b, std::int64_t a,
     std::int64_t cx, std::int64_t cy, std::int64_t cr, std::int64_t corient)
 {
     if (!state)
@@ -721,7 +721,7 @@ std::int64_t arc(
     std::array<GLfloat, 12> vertices{{
         GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y0), GLfloat(x1), GLfloat(y1),
         GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y1), GLfloat(x0), GLfloat(y1)}};
-    std::array<GLfloat, 4> color{{r / 255.0f, g / 255.0f, b / 255.0f, 1.0f}};
+    std::array<GLfloat, 4> color{{r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f}};
     std::array<GLfloat, 4> circle{{GLfloat(cx), GLfloat(cy), GLfloat(cr), GLfloat(corient)}};
     state->arc_vertices.insert(end(state->arc_vertices), begin(vertices), end(vertices));
     for (int i = 0; i < 6; ++i)
@@ -735,9 +735,9 @@ std::int64_t arc(
 std::int64_t rect(
     std::int64_t x0, std::int64_t y0,
     std::int64_t x1, std::int64_t y1,
-    std::int64_t r, std::int64_t g, std::int64_t b)
+    std::int64_t r, std::int64_t g, std::int64_t b, std::int64_t a)
 {
-    return arc(x0, y0, x1, y1, r, g, b, 0, 0, -16, -1);
+    return arc(x0, y0, x1, y1, r, g, b, a, 0, 0, -16, -1);
 }
 
 std::int64_t load_font(const char *filename, std::int64_t size)

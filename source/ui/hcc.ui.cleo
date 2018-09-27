@@ -156,14 +156,14 @@
 (def renderers
   {:arc (fn [{[origin-x origin-y] :origin
               [width height] :extents
-              [r g b] :color
+              [r g b a] :color
               [center-x center-y] :center
               :keys [radius inverted?]}]
-          (si/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
+          (si/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255) (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
    :rect (fn [{[origin-x origin-y] :origin
                [width height] :extents
-               [r g b] :color}]
-           (si/rect! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b))
+               [r g b a] :color}]
+           (si/rect! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255)))
    :text (fn [{[origin-x origin-y] :origin
                [tr tg tb ta] :text-color
                :keys [font text text-anchor text-vanchor]}]
