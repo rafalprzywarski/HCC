@@ -14,11 +14,11 @@
 (defn align-text [text align valign margin [origin-x origin-y] [width height]]
   (let [margin (or margin 0)
         origin-x (cond
-                   (= align :center) (+ origin-x (/ width 2))
+                   (= align :center) (+ origin-x (quot width 2))
                    (= align :right) (- (+ origin-x width) margin)
                    :else (+ origin-x margin))
         origin-y (cond
-                   (or (= valign :center) (= valign :baseline-center)) (+ origin-y (/ height 2))
+                   (or (= valign :center) (= valign :baseline-center)) (+ origin-y (quot height 2))
                    (= valign :top) (- (+ origin-y height) margin)
                    :else (+ origin-y margin))]
     {:text-anchor (#{:center :right} align :left)
@@ -59,7 +59,7 @@
         color (palette color)
         text-color (palette text-color)]
     (if (= button-style :rounded)
-      (let [radius (/ height 2)]
+      (let [radius (quot height 2)]
         [{:type :arc
           :origin origin
           :extents [radius height]

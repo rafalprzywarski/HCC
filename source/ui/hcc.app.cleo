@@ -357,8 +357,8 @@
 
 (defn main-loop-for! [n]
   (let [t (time (dotimes [i n]
-                  (reset! app-state (ui/step! (:palette @current-ui) (:ui @current-ui) @app-state))))]
-    (println (/ t n) "ns per frame")))
+                  (swap! app-state (fn [state] (ui/step! (:palette @current-ui) (:ui @current-ui) state)))))]
+    (println (quot t n) "ns per frame")))
 
 
 (defn main []
