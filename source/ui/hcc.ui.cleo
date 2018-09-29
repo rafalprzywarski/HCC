@@ -130,7 +130,7 @@
     :vanchor vanchor}])
 
 
-(def ui-renderers
+(def elem-renderers
   {:shape render-shape
    :label render-label
    :button render-button
@@ -146,14 +146,14 @@
       out)))
 
 
-(defn render-primitives [palette ui state]
+(defn render-elems [palette elems state]
   (mapcatv (fn [elem]
-             (when-let [render (ui-renderers (first elem))]
+             (when-let [render (elem-renderers (first elem))]
                (render palette (second elem) state)))
-           ui))
+           elems))
 
 
-(def renderers
+(def primitive-renderers
   {:arc (fn [{[origin-x origin-y] :origin
               [width height] :extents
               [r g b a] :color
@@ -182,21 +182,15 @@
                          ({:center 0, :bottom 1} vanchor -1))))})
 
 
-(defn render-scene! [scene]
-  (doseq [elem scene]
-    ((renderers (:type elem)) elem))
-  (si/render!))
-
-
 (defn get-event! []
   (when-let [event (si/get-event!)]
-    (if-let [position (:position event)]
-      (assoc event :position [(position 0) (- (- (si/get-display-height) (position 1)) 1)])
+    (if-let [[x y] (:position event)]
+      (assoc event :position [x (- (- (si/get-display-height) y) 1)])
       event)))
 
 
-(defn find-button-by-pos [ui [pos-x pos-y]]
-  (loop [s (seq ui)]
+(defn find-button-by-pos [elems [pos-x pos-y]]
+  (loop [s (seq elems)]
     (when s
       (let [[type {:keys [origin extents] :as button}] (first s)
             [origin-x origin-y] origin
@@ -214,84 +208,78 @@
     state))
 
 
-(defn handle-app-event [state ui event app-state]
+(defn handle-app-event [state elems event app-state]
   (let [{:keys [type position]} event]
     (cond
-        (= type :touch-up) (let [button (find-button-by-pos ui position)]
+        (= type :touch-up) (let [button (find-button-by-pos elems position)]
                              (if (= (:id button) (:pressed state))
                                (trigger-event button :on-click (trigger-event button :on-touch-up app-state))
                                app-state))
-        (= type :touch-down) (let [button (find-button-by-pos ui position)]
+        (= type :touch-down) (let [button (find-button-by-pos elems position)]
                                (trigger-event button :on-touch-down app-state))
-        (= type :touch-move) (let [button (find-button-by-pos ui position)]
+        (= type :touch-move) (let [button (find-button-by-pos elems position)]
                                (if (not (= (:id button) (:pressed state)))
                                  (trigger-event (get (:indexed state) (:pressed state)) :on-touch-lost app-state)
                                  app-state))
         :else app-state)))
 
 
-(defn handle-ui-event [state ui event]
+(defn handle-ui-event [state elems event]
   (let [{:keys [type position]} event]
     (cond
-      (= type :touch-up) (let [button (find-button-by-pos ui position)]
+      (= type :touch-up) (let [button (find-button-by-pos elems position)]
                            (dissoc state :pressed))
-      (= type :touch-down) (let [button (find-button-by-pos ui position)]
+      (= type :touch-down) (let [button (find-button-by-pos elems position)]
                              (assoc state :pressed (:id button)))
-      (= type :touch-move) (if (not (= (:id (find-button-by-pos ui position)) (:pressed state)))
+      (= type :touch-move) (if (not (= (:id (find-button-by-pos elems position)) (:pressed state)))
                              (dissoc state :pressed)
                              state)
       :else state)))
 
 
-(defn handle-ui-input! [ui app-state]
+(defn handle-input! [elems app-state]
   (loop [app-state app-state]
     (if-let [event (get-event!)]
       (let [{:keys [type position]} event
-            new-app-state (handle-app-event @ui-state ui event app-state)]
-        (swap! ui-state handle-ui-event ui event)
+            new-app-state (handle-app-event @ui-state elems event app-state)]
+        (swap! ui-state handle-ui-event elems event)
         (recur new-app-state))
       app-state)))
 
 
-(defn render-ui-scene! [primitives]
+(defn render-primitives! [primitives]
   (si/clear!)
-  (render-scene! primitives)
+  (doseq [p primitives]
+    ((primitive-renderers (:type p)) p))
+  (si/render!)
   (si/swap-buffers!))
 
 
 (defn index-elems [elems]
-  (reduce1 (fn [indexed elem] (assoc indexed (:id (second  elem)) elem))
+  (reduce1 (fn [indexed elem] (assoc indexed (:id (second elem)) elem))
            {}
            (filter (fn [elem] (:id (second elem))) elems)))
 
-(defn render-ui-elems [ui state]
-  (map
-   (fn [[component :as elem]]
-     (cond
-       (keyword? component) [elem]
-       (and (map? component) (::fn component)) ((::fn component)
-                                                ((::state-fn component) state) (next elem))))
-   ui))
+
+(defn render-components [components state]
+  (mapcatv (fn [[component :as desc]]
+             (cond
+               (keyword? component) [desc]
+               (and (map? component) (::fn component)) ((::fn component) ((::state-fn component) state) (next desc))))
+           components))
 
 
-(defn render-ui [ui state]
-  (persistent! (reduce1 (fn [out elem]
-                          (reduce1 conj! out elem))
-                        (transient [])
-                        (render-ui-elems ui state))))
-
-
-(defn step! [palette ui app-state]
-  (let [app-state (if-let [rendered (:rendered @ui-state)]
-                    (handle-ui-input! rendered app-state)
+(defn step! [palette components app-state]
+  (let [app-state (if-let [elems (:elems @ui-state)]
+                    (handle-input! elems app-state)
                     app-state)]
-    (let [rendered (render-ui ui app-state)
-          indexed (index-elems rendered)
-          primitives (render-primitives palette rendered @ui-state)]
+    (let [elems (render-components components app-state)
+          indexed (index-elems elems)
+          primitives (render-elems palette elems @ui-state)]
       (swap! ui-state (fn [state] (assoc state
-                                         :rendered rendered
+                                         :elems elems
                                          :indexed indexed)))
-      (render-ui-scene! primitives)
+      (render-primitives! primitives)
       app-state)))
 
 
