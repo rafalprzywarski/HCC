@@ -139,11 +139,10 @@
 
 
 (defn mapcatv [f coll]
-  (loop [s (seq coll)
-         out []]
-    (if s
-      (recur (next s) (concati out (f (first s))))
-      out)))
+  (persistent! (reduce1 (fn [out x]
+                          (reduce1 conj! out (f x)))
+                        (transient [])
+                        coll)))
 
 
 (defn render-elems [palette elems state]
