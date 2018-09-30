@@ -907,7 +907,7 @@ std::int64_t image(
         x -= img.texture_width;
     else if (anchor == 0)
         x -= img.texture_width / 2;
-    if (vanchor < 0)
+    if (vanchor > 0)
         y -= img.texture_height;
     else if (vanchor == 0)
         y -= img.texture_height / 2;

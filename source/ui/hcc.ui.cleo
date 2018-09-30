@@ -178,7 +178,7 @@
               (si/image! (@images image)
                          origin-x origin-y
                          ({:center 0, :right 1} anchor -1)
-                         ({:center 0, :bottom 1} vanchor -1))))})
+                         ({:center 0, :top 1} vanchor -1))))})
 
 
 (defn get-event! []
