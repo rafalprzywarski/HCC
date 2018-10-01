@@ -149,7 +149,7 @@ A UI element is specified using a vector containing a keyword and a map, e.g.:
 
 | name            | value            | description                                       |
 |-----------------|------------------|---------------------------------------------------|
-| `:origin`       | `[x y]`          | Coordinates of the lower-left corner of the label |
+| `:origin`       | `[x y]`          | Coordinates of the lower-left corner of the swept |
 | `:extents`      | `[width height]` | Extents of the swept                              |
 | `:inner-radius` | positive integer | Radius of the inner arc                           |
 | `:color`        | `:color-id`      | Color ID of the swept                             |
