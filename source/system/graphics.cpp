@@ -911,13 +911,17 @@ std::int64_t image(
         y -= img.texture_height;
     else if (vanchor == 0)
         y -= img.texture_height / 2;
+    x *= state->display_scale;
+    y *= state->display_scale;
+    auto width = img.texture_width * state->display_scale;
+    auto height = img.texture_height * state->display_scale;
     std::array<GLfloat, 12> vs{{
         GLfloat(x), GLfloat(y),
-        GLfloat(x) + img.texture_width, GLfloat(y),
-        GLfloat(x) + img.texture_width, GLfloat(y) + img.texture_height,
+        GLfloat(x) + width, GLfloat(y),
+        GLfloat(x) + width, GLfloat(y) + height,
         GLfloat(x), GLfloat(y),
-        GLfloat(x) + img.texture_width, GLfloat(y) + img.texture_height,
-        GLfloat(x), GLfloat(y) + img.texture_height}};
+        GLfloat(x) + width, GLfloat(y) + height,
+        GLfloat(x), GLfloat(y) + height}};
     std::array<GLfloat, 12> cs{{0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f}};
 
     ::state->image_vertices.insert(::state->image_vertices.end(), vs.begin(), vs.end());
