@@ -97,10 +97,9 @@ const std::string arc_vertex_shader_source =
 "varying vec4 v_Color;\n"
 "varying vec2 v_Position;\n"
 "varying vec4 v_Circle;\n"
-HCC_GRAPHICS_TO_LINEAR
 "void main()\n"
 "{\n"
-"    v_Color = vec4(toLinear(a_Color.rgb), a_Color.a);\n"
+"    v_Color = a_Color;\n"
 "    v_Position = a_Position.xy;\n"
 "    v_Circle = a_Circle;\n"
 "    gl_Position = u_Projection * a_Position;\n"
@@ -114,7 +113,6 @@ const std::string arc_fragment_shader_source =
 "varying vec4 v_Color;\n"
 "varying vec2 v_Position;\n"
 "varying vec4 v_Circle;\n"
-HCC_GRAPHICS_TO_SRGB
 "float smoothStep(float edge0, float edge1, float x)\n"
 "{\n"
 "    float t = clamp((x - edge0) / (edge1  - edge0), 0.0, 1.0);\n"
@@ -130,7 +128,7 @@ HCC_GRAPHICS_TO_SRGB
 "    float alpha = smoothSample();\n"
 "    if (alpha == 0.0)\n"
 "        discard;\n"
-"    gl_FragColor = vec4(tosRGB(v_Color.rgb), v_Color.a * alpha);\n"
+"    gl_FragColor = vec4(v_Color.rgb, v_Color.a * alpha);\n"
 "}\n";
 
 const std::string font_vertex_shader_source =
