@@ -74,6 +74,7 @@ const std::string image_fragment_shader_source =
 "precision mediump float;\n"
 #endif // __APPLE__
 "uniform sampler2D u_Texture;\n"
+"uniform vec3 u_BackgroundColor;\n"
 "varying vec2 v_TexCoord;\n"
 HCC_GRAPHICS_TO_LINEAR
 HCC_GRAPHICS_TO_SRGB
@@ -82,7 +83,7 @@ HCC_GRAPHICS_TO_SRGB
 "    vec4 color = texture2D(u_Texture, v_TexCoord);\n"
 "    if (color.a == 0.0)\n"
 "        discard;\n"
-"    gl_FragColor = vec4(tosRGB(toLinear(color.rgb) * color.a), 1);\n"
+"    gl_FragColor = vec4(tosRGB(mix(toLinear(u_BackgroundColor), toLinear(color.rgb), color.a)), 1);\n"
 "}\n";
 
 const std::string arc_vertex_shader_source =
@@ -332,6 +333,8 @@ struct State
     GLuint arc_texture;
     GLuint font_fbo;
     GLuint font_texture;
+
+    std::array<GLfloat, 3> clear_color{};
 };
 
 State *state = nullptr;
@@ -694,6 +697,15 @@ std::int64_t shutdown_graphics()
     return 0;
 }
 
+
+std::int64_t background_color(std::int64_t r, std::int64_t g, std::int64_t b)
+{
+    if (!state)
+        return 0;
+    state->clear_color = {r / 255.0f, g / 255.0f, b / 255.0f};
+    return 0;
+}
+
 #ifndef __APPLE__
 std::int64_t clear()
 {
@@ -938,13 +950,14 @@ std::int64_t render()
 
     glDisable(GL_BLEND);
     glBindFramebuffer(GL_FRAMEBUFFER, state->image_fbo);
-    glClearColor(0, 0, 0, 1);
+    glClearColor(state->clear_color[0], state->clear_color[1], state->clear_color[2], 1);
     glClear(GL_COLOR_BUFFER_BIT);
 
     set_buffer(state->image_vertex_buffer, state->image_vertices);
     set_buffer(state->image_coord_buffer, state->image_coords);
     glUseProgram(state->image_program);
     glUniformMatrix4fv(glGetUniformLocation(state->image_program, "u_Projection"), 1, false, state->projection.data());
+    glUniform3fv(glGetUniformLocation(state->image_program, "u_BackgroundColor"), 1, state->clear_color.data());
     set_vertex_attrib(state->image_program, "a_Position", 2, state->image_vertex_buffer);
     set_vertex_attrib(state->image_program, "a_TexCoord", 2, state->image_coord_buffer);
     glUniform1i(glGetUniformLocation(state->image_program, "u_Texture"), 0);
