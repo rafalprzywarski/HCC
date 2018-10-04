@@ -293,8 +293,8 @@
                           :center [0 20]
                           :radius 20}
                          {:type :rect
-                          :origin [750 0]
-                          :extents [30 40]}
+                          :origin [749 0]
+                          :extents [31 40]}
                          {:type :rect
                           :origin [55 0]
                           :extents [480 40]}]}]
@@ -342,7 +342,8 @@
    [:label {:text "CONSOLE ACCESS"
             :font :big
             :origin [535 440]
-            :extents [215 90]
+            :extents [214 90]
+            :margin 1
             :text-color :primary
             :text-align :center
             :text-valign :baseline
