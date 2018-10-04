@@ -607,6 +607,7 @@ std::int64_t text_width(const Font& font, const char *text)
         if (prev_ch)
             width += font.kerning.at(prev_ch).at(ch);
         width += font.chars.at(ch).advance_x;
+        prev_ch = ch;
     }
     return width;
 }
