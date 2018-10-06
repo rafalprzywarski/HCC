@@ -514,7 +514,7 @@ RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned p
 {
     RasterizedFont font;
     font.precision = precision;
-    FontImage img{2048, 2048};
+    FontImage img{2048 * unsigned(state->display_scale), 2048};
     unsigned dx = 0, dy = 0, row_height = 0;
     bool too_big = false;
     for (auto a : chars)
