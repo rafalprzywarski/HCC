@@ -37,18 +37,19 @@
 (defn render-label [palette
                     {:keys [id origin extents color font text text-color text-align text-valign margin]}
                     {pressed-id :pressed}]
-  (let [color (if (and id (= id pressed-id)) :highlight color)
-        color (palette color)
-        text-color (palette text-color)]
-    [{:type :rect
-      :origin origin
-      :extents extents
-      :color color}
-     (merge {:type :text
+  (let [color (if (and color id (= id pressed-id)) :highlight color)
+        text (merge {:type :text
              :font font
              :text text
-             :text-color text-color}
-            (align-text text text-align text-valign margin origin extents))]))
+             :text-color (palette text-color)}
+            (align-text text text-align text-valign margin origin extents))]
+    (if color
+      [{:type :rect
+        :origin origin
+        :extents extents
+        :color (palette color)}
+       text]
+      [text])))
 
 
 (defn render-button [palette
