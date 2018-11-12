@@ -5,7 +5,6 @@
 
 (def fonts (atom nil))
 (def images (atom nil))
-(def ui-state (atom nil))
 
 
 (defn v2+ [[x1 y1] [x2 y2]] [(+ x1 x2) (+ y1 y2)])
@@ -241,9 +240,9 @@
   (loop [app-state app-state]
     (if-let [event (get-event!)]
       (let [{:keys [type position]} event
-            new-app-state (handle-app-event @ui-state elems event app-state)]
-        (swap! ui-state handle-ui-event elems event)
-        (recur new-app-state))
+            new-app-state (handle-app-event (::state app-state) elems event app-state)
+            new-state (handle-ui-event (::state new-app-state) elems event)]
+        (recur (assoc new-app-state ::state new-state)))
       app-state)))
 
 
@@ -273,17 +272,17 @@
 (defn step! [app-state]
   (let [palette (::palette app-state)
         components (::root app-state)
-        app-state (if-let [elems (:elems @ui-state)]
+        app-state (if-let [elems (:elems (::state app-state))]
                     (handle-input! elems app-state)
                     app-state)]
     (let [elems (render-components components app-state)
           indexed (index-elems elems)
-          primitives (render-elems palette elems @ui-state)]
-      (swap! ui-state (fn [state] (assoc state
-                                         :elems elems
-                                         :indexed indexed)))
+          primitives (render-elems palette elems (::state app-state))
+          new-state (assoc (::state app-state)
+                           :elems elems
+                           :indexed indexed)]
       (render-primitives! primitives (:background palette))
-      app-state)))
+      (assoc app-state ::state new-state))))
 
 
 (defmacro defc [name [state-param :as params] body]
