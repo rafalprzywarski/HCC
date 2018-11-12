@@ -270,8 +270,10 @@
            components))
 
 
-(defn step! [palette components app-state]
-  (let [app-state (if-let [elems (:elems @ui-state)]
+(defn step! [app-state]
+  (let [palette (::palette app-state)
+        components (::root app-state)
+        app-state (if-let [elems (:elems @ui-state)]
                     (handle-input! elems app-state)
                     app-state)]
     (let [elems (render-components components app-state)

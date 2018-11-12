@@ -7,19 +7,19 @@
                       :code ""}))
 
 
-(def current-ui (atom nil))
-
-
 (def font-path "assets/Swiss 911 Ultra Compressed BT.ttf")
 (def fonts
   [{:name :big :path font-path :size 27}
+   {:name :title :path font-path :size 40}
    {:name :small :path font-path :size 12}
    {:name :tiny :path font-path :size 9}])
 
 
 (def images
   [{:name :lock
-    :path "assets/lock.png"}])
+    :path "assets/lock.png"}
+   {:name :ufp
+    :path "assets/ufp.png"}])
 
 
 (def main-palette
@@ -225,7 +225,8 @@
    :tertiary [255 180 72]
    :quateriary [65 229 121]
    :highlight [255 255 255]
-   :text [0 0 0]})
+   :text [0 0 0]
+   :transparent [0 0 0 0]})
 
 
 (defn enter-digit [n]
@@ -240,8 +241,10 @@
 
 
 (defn enter-code [state]
-  (reset! current-ui {:ui main-ui, :palette main-palette})
-  (assoc state :code ""))
+  (assoc state
+         :code ""
+         ::ui/root main-ui
+         ::ui/palette main-palette))
 
 
 (defn digit-button [id text origin on-click]
@@ -349,6 +352,84 @@
             :text-valign :baseline
             :color :text}]])
 
+(def login-ui
+  [[:shape {:origin [0 440]
+            :color :tertiary
+            :primitives [{:type :arc
+                          :extents [20 40]
+                          :center [20 20]
+                          :radius 20}
+                         {:type :rect
+                          :origin [20 0]
+                          :extents [30 40]}
+                         {:type :arc
+                          :origin [780 0]
+                          :extents [20 40]
+                          :center [0 20]
+                          :radius 20}
+                         {:type :rect
+                          :origin [749 0]
+                          :extents [31 40]}
+                         {:type :rect
+                          :origin [55 0]
+                          :extents [480 40]}]}]
+   [:shape {:origin [0 0]
+            :color :tertiary
+            :primitives [{:type :arc
+                          :extents [20 40]
+                          :center [20 20]
+                          :radius 20}
+                         {:type :rect
+                          :origin [20 0]
+                          :extents [30 40]}
+                         {:type :arc
+                          :origin [780 0]
+                          :extents [20 40]
+                          :center [0 20]
+                          :radius 20}
+                         {:type :rect
+                          :origin [750 0]
+                          :extents [30 40]}
+                         {:type :rect
+                          :origin [55 0]
+                          :extents [690 40]}]}]
+   [:image {:origin [400 315]
+            :image :ufp
+            :anchor :center
+            :vanchor :center}]
+   [:button {:id :login
+             :font :big
+             :text ""
+             :origin [0 50]
+             :extents [800 380]
+             :color :transparent
+             :text-color :text
+             :on-click (fn [state] (assoc state
+                                          ::ui/root security-ui
+                                          ::ui/palette security-palette))}]
+   [:label {:text "CONSOLE ACCESS"
+            :font :big
+            :origin [535 440]
+            :extents [214 40]
+            :margin 1
+            :text-color :primary
+            :text-align :center
+            :text-valign :baseline}]
+   [:label {:text "HOME CONTROL CENTER"
+            :font :title
+            :origin [100 130]
+            :extents [600 40]
+            :text-color :primary
+            :text-align :center
+            :text-valign :baseline}]
+   [:label {:text "AUTHORIZATION REQUIRED"
+            :font :big
+            :origin [100 65]
+            :extents [600 40]
+            :text-color :tertiary
+            :text-align :center
+            :text-valign :baseline}]])
+
 
 (defmacro time [expr]
   `(let [start# (get-time)
@@ -358,16 +439,16 @@
 
 (defn main-loop-for! [n]
   (let [t (time (dotimes [i n]
-                  (swap! app-state (fn [state] (ui/step! (:palette @current-ui) (:ui @current-ui) state)))))]
+                  (swap! app-state ui/step!)))]
     (println (quot t n) "ns per frame")))
 
 
 (defn main []
   (ui/initialize! 1)
-  (reset! current-ui {:ui security-ui :palette security-palette})
+  (swap! app-state merge {::ui/root login-ui, ::ui/palette security-palette})
   (main-loop-for! 1)
   (ui/load-images! images)
   (main-loop-for! 1)
   (ui/load-fonts! fonts)
-  (main-loop-for! 2000)
+  (main-loop-for! 847)
   (ui/shutdown!))
