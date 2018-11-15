@@ -25,7 +25,12 @@
      :origin [origin-x origin-y]}))
 
 
-(defn render-shape [palette {:keys [origin color primitives]} state]
+(defmulti render-elem (fn [palette elem state] (first elem)))
+(defmethod render-elem :default [palette elem state] nil)
+
+
+(defmethod render-elem :shape
+  [palette [type {:keys [origin color primitives]}] state]
   (let [color (palette color)]
     (map (fn [p] (assoc p
                         :color color
@@ -33,15 +38,16 @@
          primitives)))
 
 
-(defn render-label [palette
-                    {:keys [id origin extents color font text text-color text-align text-valign margin]}
-                    {pressed-id :pressed}]
+(defmethod render-elem :label
+  [palette
+   [type {:keys [id origin extents color font text text-color text-align text-valign margin]}]
+   {pressed-id :pressed}]
   (let [color (if (and color id (= id pressed-id)) :highlight color)
         text (merge {:type :text
-             :font font
-             :text text
-             :text-color (palette text-color)}
-            (align-text text text-align text-valign margin origin extents))]
+                     :font font
+                     :text text
+                     :text-color (palette text-color)}
+                    (align-text text text-align text-valign margin origin extents))]
     (if color
       [{:type :rect
         :origin origin
@@ -51,10 +57,11 @@
       [text])))
 
 
-(defn render-button [palette
-                     {[width height] :extents
-                      :keys [id origin extents color font text text-color text-align text-valign margin button-style]}
-                     {pressed-id :pressed}]
+(defmethod render-elem :button
+  [palette
+   [type {[width height] :extents
+          :keys [id origin extents color font text text-color text-align text-valign margin button-style]}]
+   {pressed-id :pressed}]
   (let [color (if (and id (= id pressed-id)) :highlight color)
         color (palette color)
         text-color (palette text-color)]
@@ -92,10 +99,11 @@
               (align-text text text-align text-valign margin origin extents))])))
 
 
-(defn render-top-left-swept [palette
-                             {[width height] :extents
-                              :keys [origin inner-radius color]}
-                             state]
+(defmethod render-elem :top-left-swept
+  [palette
+   [type {[width height] :extents
+          :keys [origin inner-radius color]}]
+   state]
   (let [color (palette color)]
     [{:type :arc
       :origin origin
@@ -120,22 +128,13 @@
       :color color}]))
 
 
-(defn render-image [palette
-                    {:keys [origin image anchor vanchor]}
-                    state]
+(defmethod render-elem :image
+  [palette [type {:keys [origin image anchor vanchor]}] state]
   [{:type :image
     :origin origin
     :image image
     :anchor anchor
     :vanchor vanchor}])
-
-
-(def elem-renderers
-  {:shape render-shape
-   :label render-label
-   :button render-button
-   :top-left-swept render-top-left-swept
-   :image render-image})
 
 
 (defn mapcatv [f coll]
@@ -146,39 +145,49 @@
 
 
 (defn render-elems [palette elems state]
-  (mapcatv (fn [elem]
-             (when-let [render (elem-renderers (first elem))]
-               (render palette (second elem) state)))
-           elems))
+  (mapcatv (fn [elem] (render-elem palette elem state)) elems))
 
 
-(def primitive-renderers
-  {:arc (fn [{[origin-x origin-y] :origin
-              [width height] :extents
-              [r g b a] :color
-              [center-x center-y] :center
-              :keys [radius inverted?]}]
-          (si/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255) (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
-   :rect (fn [{[origin-x origin-y] :origin
-               [width height] :extents
-               [r g b a] :color}]
-           (si/rect! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255)))
-   :text (fn [{[origin-x origin-y] :origin
-               [tr tg tb ta] :text-color
-               :keys [font text text-anchor text-vanchor]}]
-           (if @fonts
-             (si/text! (@fonts font)
-                       text
-                       origin-x origin-y
-                       ({:center 0, :right 1} text-anchor -1) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-vanchor 0)
-                       tr tg tb (or ta 255))))
-   :image (fn [{[origin-x origin-y] :origin
-                :keys [image anchor vanchor]}]
-            (when @images
-              (si/image! (@images image)
-                         origin-x origin-y
-                         ({:center 0, :right 1} anchor -1)
-                         ({:center 0, :top 1} vanchor -1))))})
+(defmulti render-primitive! :type)
+(defmethod render-primitive! :default [_])
+
+
+(defmethod render-primitive! :arc
+  [{[origin-x origin-y] :origin
+    [width height] :extents
+    [r g b a] :color
+    [center-x center-y] :center
+    :keys [radius inverted?]}]
+  (si/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255) (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
+
+
+(defmethod render-primitive! :rect
+  [{[origin-x origin-y] :origin
+    [width height] :extents
+    [r g b a] :color}]
+  (si/rect! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255)))
+
+
+(defmethod render-primitive! :text
+  [{[origin-x origin-y] :origin
+    [tr tg tb ta] :text-color
+    :keys [font text text-anchor text-vanchor]}]
+  (if @fonts
+    (si/text! (@fonts font)
+              text
+              origin-x origin-y
+              ({:center 0, :right 1} text-anchor -1) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-vanchor 0)
+              tr tg tb (or ta 255))))
+
+
+(defmethod render-primitive! :image
+  [{[origin-x origin-y] :origin
+    :keys [image anchor vanchor]}]
+  (when @images
+    (si/image! (@images image)
+               origin-x origin-y
+               ({:center 0, :right 1} anchor -1)
+               ({:center 0, :top 1} vanchor -1))))
 
 
 (defn get-event! []
@@ -253,7 +262,7 @@
   (si/background-color! (or bg-r 0) (or bg-g 0) (or bg-b 0))
   (si/clear!)
   (doseq [p primitives]
-    ((primitive-renderers (:type p)) p))
+    (render-primitive! p))
   (si/render!)
   (si/swap-buffers!))
 
