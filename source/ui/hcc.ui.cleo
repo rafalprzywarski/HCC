@@ -210,51 +210,53 @@
           (recur (next s)))))))
 
 
-(defn trigger-event [elem event state]
+(defn trigger-event [app-state elem event]
   (if-let [handle (get elem event)]
-    (handle state)
-    state))
+    (handle app-state)
+    app-state))
 
 
-(defn handle-app-event [state elems event app-state]
-  (let [{:keys [type position]} event]
-    (cond
-        (= type :touch-up) (let [button (find-button-by-pos elems position)]
-                             (if (= (:id button) (:pressed state))
-                               (->> app-state
-                                    (trigger-event button :on-touch-up)
-                                    (trigger-event button :on-click))
-                               app-state))
-        (= type :touch-down) (let [button (find-button-by-pos elems position)]
-                               (trigger-event button :on-touch-down app-state))
-        (= type :touch-move) (let [button (find-button-by-pos elems position)]
-                               (if (not (= (:id button) (:pressed state)))
-                                 (let [[_ prev-button] (get (:indexed state) (:pressed state))]
-                                   (trigger-event prev-button :on-touch-lost app-state))
-                                 app-state))
-        :else app-state)))
+(defmulti handle-event (fn [app-state elems {:keys [type]}] type))
+(defmethod handle-event :default [app-state elems event] app-state)
 
 
-(defn handle-ui-event [state elems event]
-  (let [{:keys [type position]} event]
-    (cond
-      (= type :touch-up) (let [button (find-button-by-pos elems position)]
-                           (dissoc state :pressed))
-      (= type :touch-down) (let [button (find-button-by-pos elems position)]
-                             (assoc state :pressed (:id button)))
-      (= type :touch-move) (if (not (= (:id (find-button-by-pos elems position)) (:pressed state)))
-                             (dissoc state :pressed)
-                             state)
-      :else state)))
+(defmethod handle-event :touch-up [{{pressed-id :pressed :as state} ::state :as app-state} elems {:keys [position]}]
+  (if-let [{button-id :id :as button} (find-button-by-pos elems position)]
+    (-> (if (= button-id pressed-id)
+          (-> app-state
+              (trigger-event button :on-touch-up)
+              (trigger-event button :on-click))
+          app-state)
+        (assoc ::state (dissoc state :pressed)))
+    app-state))
+
+
+(defmethod handle-event :touch-down [{state ::state :as app-state} elems {:keys [position]}]
+  (if-let [{button-id :id :as button} (find-button-by-pos elems position)]
+    (-> app-state
+        (trigger-event button :on-touch-down)
+        (assoc ::state (assoc state :pressed button-id)))
+    app-state))
+
+
+(defmethod handle-event :touch-move [{{pressed-id :pressed :as state} ::state :as app-state} elems {:keys [position]}]
+  (let [{button-id :id :as button} (find-button-by-pos elems position)]
+    (if (and pressed-id
+             (not (= button-id pressed-id)))
+      (let [[_ prev-button] (get (:indexed state) pressed-id)]
+        (-> app-state
+            (trigger-event prev-button :on-touch-lost)
+            (assoc ::state (dissoc state :pressed))))
+      app-state)))
+
+
+
 
 
 (defn handle-input! [elems app-state]
   (loop [app-state app-state]
     (if-let [event (get-event!)]
-      (let [{:keys [type position]} event
-            new-app-state (handle-app-event (::state app-state) elems event app-state)
-            new-state (handle-ui-event (::state new-app-state) elems event)]
-        (recur (assoc new-app-state ::state new-state)))
+      (recur (handle-event app-state elems event))
       app-state)))
 
 
