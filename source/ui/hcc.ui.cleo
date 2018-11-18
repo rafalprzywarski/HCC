@@ -41,7 +41,7 @@
 (defmethod render-elem :label
   [palette
    [type {:keys [id origin extents color font text text-color text-align text-valign margin]}]
-   {pressed-id :pressed}]
+   {pressed-id ::pressed-id}]
   (let [color (if (and color id (= id pressed-id)) :highlight color)
         text (merge {:type :text
                      :font font
@@ -61,7 +61,7 @@
   [palette
    [type {[width height] :extents
           :keys [id origin extents color font text text-color text-align text-valign margin button-style]}]
-   {pressed-id :pressed}]
+   {pressed-id ::pressed-id}]
   (let [color (if (and id (= id pressed-id)) :highlight color)
         color (palette color)
         text-color (palette text-color)]
@@ -220,33 +220,33 @@
 (defmethod handle-event :default [app-state elems event] app-state)
 
 
-(defmethod handle-event :touch-up [{{pressed-id :pressed :as state} ::state :as app-state} elems {:keys [position]}]
+(defmethod handle-event :touch-up [{pressed-id ::pressed-id :as app-state} elems {:keys [position]}]
   (if-let [{button-id :id :as button} (find-button-by-pos elems position)]
     (-> (if (= button-id pressed-id)
           (-> app-state
               (trigger-event button :on-touch-up)
               (trigger-event button :on-click))
           app-state)
-        (assoc ::state (dissoc state :pressed)))
+        (dissoc ::pressed-id))
     app-state))
 
 
-(defmethod handle-event :touch-down [{state ::state :as app-state} elems {:keys [position]}]
+(defmethod handle-event :touch-down [app-state elems {:keys [position]}]
   (if-let [{button-id :id :as button} (find-button-by-pos elems position)]
     (-> app-state
         (trigger-event button :on-touch-down)
-        (assoc ::state (assoc state :pressed button-id)))
+        (assoc ::pressed-id button-id))
     app-state))
 
 
-(defmethod handle-event :touch-move [{{pressed-id :pressed :as state} ::state :as app-state} elems {:keys [position]}]
+(defmethod handle-event :touch-move [{pressed-id ::pressed-id :as app-state} elems {:keys [position]}]
   (let [{button-id :id :as button} (find-button-by-pos elems position)]
     (if (and pressed-id
              (not (= button-id pressed-id)))
-      (let [[_ prev-button] (get (:indexed state) pressed-id)]
+      (let [[_ prev-button] (get (::indexed-elems app-state) pressed-id)]
         (-> app-state
             (trigger-event prev-button :on-touch-lost)
-            (assoc ::state (dissoc state :pressed))))
+            (dissoc ::pressed-id)))
       app-state)))
 
 
@@ -287,34 +287,30 @@
            components))
 
 
-(defn render [app-state]
-  (let [palette (::palette app-state)
-        components (::root app-state)
-        elems (render-components components app-state)
+(defn render [{palette ::palette components ::root :as app-state}]
+  (let [elems (render-components components app-state)
         indexed (index-elems elems)
-        primitives (render-elems palette elems (::state app-state))
-        new-state (assoc (::state app-state)
-                         :elems elems
-                         :indexed indexed
-                         :primitives primitives
-                         :background-color (:background palette))]
-    (assoc app-state ::state new-state)))
+        primitives (render-elems palette elems app-state)]
+    (assoc app-state
+           ::primitives primitives
+           ::background-color (:background palette)
+           ::indexed-elems indexed
+           ::elems elems)))
 
 
 (defn rendered? [app-state]
-  (contains? (::state app-state) :primitives))
+  (contains? app-state ::primitives))
 
 
-(defn render! [app-state]
-  (let [primitives (:primitives (::state app-state))
-        background-color (:background-color (::state app-state))]
-    (render-primitives! primitives background-color)))
+(defn render! [{primitives ::primitives
+                background-color ::background-color}]
+  (render-primitives! primitives background-color))
 
 
 (defn step [app-state events]
   (let [app-state
         (reduce1 (fn [app-state event]
-                   (render (if-let [elems (:elems (::state app-state))]
+                   (render (if-let [elems (::elems app-state)]
                              (handle-event app-state elems event)
                              app-state)))
                  app-state
