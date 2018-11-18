@@ -439,7 +439,9 @@
 
 (defn main-loop-for! [n]
   (let [t (time (dotimes [i n]
-                  (swap! app-state ui/step!)))]
+                  (let [events (ui/get-input-events!)]
+                    (swap! app-state ui/step events)
+                    (ui/render! @app-state))))]
     (println (quot t n) "ns per frame")))
 
 

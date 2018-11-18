@@ -250,14 +250,18 @@
       app-state)))
 
 
-
-
-
-(defn handle-input! [elems app-state]
-  (loop [app-state app-state]
+(defn get-input-events! []
+  (loop [events (transient [])]
     (if-let [event (get-event!)]
-      (recur (handle-event app-state elems event))
-      app-state)))
+      (recur (conj! events event))
+      (persistent! events))))
+
+
+(defn handle-events [elems app-state events]
+  (reduce1 (fn [app-state event]
+             (handle-event app-state elems event))
+           app-state
+           events))
 
 
 (defn render-primitives! [primitives [bg-r bg-g bg-b]]
@@ -283,20 +287,41 @@
            components))
 
 
-(defn step! [app-state]
+(defn render [app-state]
   (let [palette (::palette app-state)
         components (::root app-state)
-        app-state (if-let [elems (:elems (::state app-state))]
-                    (handle-input! elems app-state)
-                    app-state)]
-    (let [elems (render-components components app-state)
-          indexed (index-elems elems)
-          primitives (render-elems palette elems (::state app-state))
-          new-state (assoc (::state app-state)
-                           :elems elems
-                           :indexed indexed)]
-      (render-primitives! primitives (:background palette))
-      (assoc app-state ::state new-state))))
+        elems (render-components components app-state)
+        indexed (index-elems elems)
+        primitives (render-elems palette elems (::state app-state))
+        new-state (assoc (::state app-state)
+                         :elems elems
+                         :indexed indexed
+                         :primitives primitives
+                         :background-color (:background palette))]
+    (assoc app-state ::state new-state)))
+
+
+(defn rendered? [app-state]
+  (contains? (::state app-state) :primitives))
+
+
+(defn render! [app-state]
+  (let [primitives (:primitives (::state app-state))
+        background-color (:background-color (::state app-state))]
+    (render-primitives! primitives background-color)))
+
+
+(defn step [app-state events]
+  (let [app-state
+        (reduce1 (fn [app-state event]
+                   (render (if-let [elems (:elems (::state app-state))]
+                             (handle-event app-state elems event)
+                             app-state)))
+                 app-state
+                 events)]
+    (if (not (rendered? app-state))
+      (render app-state)
+      app-state)))
 
 
 (defmacro defc [name [state-param :as params] body]
