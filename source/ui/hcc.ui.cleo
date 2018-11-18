@@ -198,16 +198,17 @@
 
 
 (defn find-button-by-pos [elems [pos-x pos-y]]
-  (loop [s (seq elems)]
-    (when s
-      (let [[type {:keys [origin extents] :as button}] (first s)
-            [origin-x origin-y] origin
-            [width height] extents]
-        (if (and (= type :button)
-                 (not (or (< pos-x origin-x) (< pos-y origin-y)))
-                 (< pos-x (+ origin-x width)) (< pos-y (+ origin-y height)))
-          button
-          (recur (next s)))))))
+  (some (fn [elem]
+          (when (= :button (first elem))
+            (let [{[origin-x origin-y] :origin
+                   [width height] :extents
+                   :as button} (second elem)]
+              (when (and (not (< pos-x origin-x))
+                         (not (< pos-y origin-y))
+                         (< pos-x (+ origin-x width))
+                         (< pos-y (+ origin-y height)))
+                button))))
+        elems))
 
 
 (defn trigger-event [app-state elem event]
