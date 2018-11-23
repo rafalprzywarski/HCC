@@ -213,7 +213,12 @@
 
 (defn trigger-event [app-state elem event]
   (if-let [handle (get elem event)]
-    (handle app-state)
+    (try*
+      (handle app-state)
+      (catch* Exception e
+              (do
+                (println "EXCEPTION:" e)
+                app-state)))
     app-state))
 
 
