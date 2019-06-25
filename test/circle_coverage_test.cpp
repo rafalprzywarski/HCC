@@ -60,88 +60,84 @@ struct CircleCoverageTest : testing::Test
 
     static double sector_coverage(double x, double y, double r)
     {
-        if (x >= 0.5 ||
-            y >= 0.5 ||
-            x + r <= -0.5 ||
-            y + r <= -0.5 ||
-            (x <= -0.5 && y <= -0.5 && sqr(-0.5 - x) + sqr(-0.5 - y) >= sqr(r)))
+        double r2 = r * r;
+        double xr = x + 0.5;
+        double xl = x - 0.5;
+        double yr = y + 0.5;
+        double yl = y - 0.5;
+        double xr2 = xr * xr;
+        double xl2 = xl * xl;
+        double yr2 = yr * yr;
+        double yl2 = yl * yl;
+        double cxl = std::sqrt(r2 - xl2);
+        double cyl = std::sqrt(r2 - yl2);
+        double cxr = std::sqrt(r2 - xr2);
+        double cyr = std::sqrt(r2 - yr2);
+        double axl = -std::asin(xl / r);
+        double ayl = -std::asin(yl / r);
+        double axr = -std::asin(xr / r);
+        double ayr = -std::asin(yr / r);
+
+        if (xl >= 0 ||
+            yl >= 0 ||
+            0 >= xr + r ||
+            0 >= yr + r ||
+            (xr <= 0 && yr <= 0 && xr2 + yr2 >= r2))
             return 0;
-        if (x <= -0.5 && y <= -0.5 && sqr(0.5 - x) + sqr(0.5 - y) <= sqr(r))
+
+        if (xr <= 0 && yr <= 0 && xl2 + yl2 <= r2)
             return 1;
-        if (x >= -0.5 && y >= -0.5)
+
+        if (xr >= 0 && yr >= 0)
         {
-            if (x + r <= 0.5 && y + r <= 0.5)
-                return 0.25 * PI * r * r;
-            if (sqr(0.5 - x) + sqr(0.5 - y) <= r * r)
-                return (0.5 - x) * (0.5 - y);
-            if (x + r <= 0.5)
-                return 0.5 * (sqr(r) * std::asin((0.5 - y) / r) + (0.5 - y) * std::sqrt(sqr(r) - sqr(0.5 - y)));
-            if (y + r <= 0.5)
-                return 0.5 * (sqr(r) * std::asin((0.5 - x) / r) + (0.5 - x) * std::sqrt(sqr(r) - sqr(0.5 - x)));
-            return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - x) / r) - std::acos((0.5 - y) / r)) +
-                          (0.5 - x) * std::sqrt(sqr(r) - sqr(0.5 - x)) +
-                          (0.5 - y) * std::sqrt(sqr(r) - sqr(0.5 - y)));
+            if (xl + r <= 0 && yl + r <= 0)
+                return 0.25 * PI * r2;
+            if (xl2 + yl2 <= r2)
+                return xl * yl;
+            if (xl + r <= 0)
+                return 0.5 * (r2 * ayl - yl * cyl);
+            if (yl + r <= 0)
+                return 0.5 * (r2 * axl - xl * cxl);
+            return 0.5 * (r2 * (axl + ayl - HALF_PI) - xl * cxl - yl * cyl);
         }
-        if (x < -0.5 && y < -0.5)
+        if (xr < 0 && yr < 0)
         {
-            if (sqr(0.5 + x) + sqr(0.5 - y) < sqr(r) && sqr(0.5 - x) + sqr(0.5 + y) < sqr(r))
-            {
-                auto xd = std::sqrt(sqr(r) - sqr(0.5 - x));
-                auto yd = std::sqrt(sqr(r) - sqr(0.5 - y));
-                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - y) / r) - std::acos((0.5 - x) / r)) + (0.5 - y) * yd + (0.5 - x) * xd) + (0.5 + y) + (0.5 + x) * (0.5 - y);
-            }
+            if (xr2 + yl2 < r2 && xl2 + yr2 < r2)
+                return 0.5 * (r2 * (axl + ayl - HALF_PI) - yl * cyl - xl * cxl) + yr - xr * yl;
 
-            if (sqr(0.5 + x) + sqr(0.5 - y) < sqr(r))
-            {
-                auto yd = std::sqrt(sqr(r) - sqr(0.5 - y));
-                auto ydp = std::sqrt(sqr(r) - sqr(0.5 + y));
-                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - y) / r) - std::asin((-0.5 - y) / r)) + (0.5 - y) * yd + (0.5 + y) * ydp) - (-0.5 - x);
-            }
-            if (sqr(0.5 - x) + sqr(0.5 + y) < sqr(r))
-            {
-                auto xd = std::sqrt(sqr(r) - sqr(0.5 - x));
-                auto xdp = std::sqrt(sqr(r) - sqr(0.5 + x));
-                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - x) / r) - std::asin((-0.5 - x) / r)) + (0.5 - x) * xd + (0.5 + x) * xdp) - (-0.5 - y);
-            }
-            auto xd = std::sqrt(sqr(r) - sqr(x + 0.5));
-            auto yd = std::sqrt(sqr(r) - sqr(y + 0.5));
-            return 0.5 * (sqr(r) * (HALF_PI - std::asin((-x - 0.5) / r) - std::asin((-y - 0.5) / r)) + (x + 0.5) * xd + (y + 0.5) * yd) + (x + 0.5) * (y + 0.5);
+            if (xr2 + yl2 < r2)
+                return 0.5 * (r2 * (ayl - ayr) - yl * cyl + yr * cyr) + xr;
+
+            if (xl2 + yr2 < r2)
+                return 0.5 * (r2 * (axl - axr) - xl * cxl + xr * cxr) + yr;
+
+            return 0.5 * (r2 * (HALF_PI - axr - ayr) + xr * cxr + yr * cyr) + xr * yr;
         }
-        if (x < -0.5)
+        if (xr < 0 && yr >= 0)
         {
-            if (sqr(x + 0.5) + sqr(y - 0.5) > sqr(r))
-                return 0.5 * (sqr(r) * std::acos((-0.5 - x) / r) + (0.5 + x) * std::sqrt(sqr(r) - sqr(0.5 + x)));
+            if (xr2 + yl2 > r2)
+                return 0.5 * (r2 * (HALF_PI - axr) + xr * cxr);
 
-            if (sqr(x - 0.5) + sqr(y - 0.5) < sqr(r))
-                return 0.5 - y;
+            if (xl2 + yl2 < r2)
+                return -yl;
 
-            if (0.5 - x < r)
-            {
-                auto xd = std::sqrt(sqr(r) - sqr(0.5 - x));
-                auto yd = std::sqrt(sqr(r) - sqr(0.5 - y));
-                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - x) / r) - std::acos((0.5 - y) / r)) + (0.5 - x) * xd + (0.5 - y) * yd) - (0.5 - y) * (-0.5 - x);
-            }
+            if (0 < r + xl)
+                return 0.5 * (r2 * (axl + ayl - HALF_PI) - xl * cxl - yl * cyl) - yl * xr;
 
-            auto d = std::sqrt(sqr(r) - sqr(0.5 - y));
-            return 0.5 * sqr(r) * std::asin((0.5 - y) / r) + (0.5 - y) * d * (0.5 + (x + 0.5) / d);
+            return 0.5 * (r2 * ayl - cyl * yl) - xr * yl;
         }
-        if (y < -0.5)
+        if (xr >= 0 && yr < 0)
         {
-            if (sqr(x - 0.5) + sqr(y + 0.5) > sqr(r))
-                return 0.5 * (sqr(r) * std::acos((-0.5 - y) / r) + (0.5 + y) * std::sqrt(sqr(r) - sqr(0.5 + y)));
+            if (xl2 + yr2 > r2)
+                return 0.5 * (r2 * (HALF_PI - ayr) + yr * cyr);
 
-            if (sqr(x - 0.5) + sqr(y - 0.5) < sqr(r))
-                return 0.5 - x;
+            if (xl2 + yl2 < r2)
+                return -xl;
 
-            if (0.5 - y < r)
-            {
-                auto xd = std::sqrt(sqr(r) - sqr(0.5 - x));
-                auto yd = std::sqrt(sqr(r) - sqr(0.5 - y));
-                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - x) / r) - std::acos((0.5 - y) / r)) + (0.5 - x) * xd + (0.5 - y) * yd) - (0.5 - x) * (-0.5 - y);
-            }
+            if (0 < r + yl)
+                return 0.5 * (r2 * (axl + ayl - HALF_PI) - xl * cxl - yl * cyl) - xl * yr;
 
-            auto d = std::sqrt(sqr(r) - sqr(0.5 - x));
-            return 0.5 * sqr(r) * std::asin((0.5 - x) / r) + (0.5 - x) * d * (0.5 + (y + 0.5) / d);
+            return 0.5 * (r2 * axl - cxl * xl) - yr * xl;
         }
         return -1;
     }
