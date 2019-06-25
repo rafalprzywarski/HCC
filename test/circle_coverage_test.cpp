@@ -22,19 +22,24 @@ struct CircleCoverageTest : testing::Test
     template <typename F>
     static double approx_coverage(F pred, double cx, double cy, double cr)
     {
-        int c = 0;
-        int N = 4096;
+        long c = 0;
+        int N = 4096 * 4 * 2;
         auto m = -0.5 + double(0.5) / N;
         for (int i = 0; i < N; ++i)
             for (int j = 0; j < N; ++j)
                 if (pred(cx, cy, cr, m + double(i) / N, m + double(j) / N))
                     c++;
-        return double(c) / (N * N);
+        return double(c) / (double(N) * N);
     }
 
     static double approx_circle_coverage(double cx, double cy, double cr) { return approx_coverage(is_inside_circle, cx, cy, cr); }
 
-    static double approx_sector_coverage(double cx, double cy, double cr) { return approx_coverage(is_inside_sector, cx, cy, cr); }
+    static double approx_sector_coverage(double cx, double cy, double cr)
+    {
+        if (cx >= 0.5 || cy >= 0.5 || cx + cr <= -0.5 || cy + cr <= -0.5)
+            return 0;
+        return approx_coverage(is_inside_sector, cx, cy, cr);
+    }
 
     static double sqr(double x) { return x * x; }
 
@@ -79,6 +84,25 @@ struct CircleCoverageTest : testing::Test
         }
         if (x < -0.5 && y < -0.5)
         {
+            if (sqr(0.5 + x) + sqr(0.5 - y) < sqr(r) && sqr(0.5 - x) + sqr(0.5 + y) < sqr(r))
+            {
+                auto xd = std::sqrt(sqr(r) - sqr(0.5 - x));
+                auto yd = std::sqrt(sqr(r) - sqr(0.5 - y));
+                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - y) / r) - std::acos((0.5 - x) / r)) + (0.5 - y) * yd + (0.5 - x) * xd) + (0.5 + y) + (0.5 + x) * (0.5 - y);
+            }
+
+            if (sqr(0.5 + x) + sqr(0.5 - y) < sqr(r))
+            {
+                auto yd = std::sqrt(sqr(r) - sqr(0.5 - y));
+                auto ydp = std::sqrt(sqr(r) - sqr(0.5 + y));
+                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - y) / r) - std::asin((-0.5 - y) / r)) + (0.5 - y) * yd + (0.5 + y) * ydp) - (-0.5 - x);
+            }
+            if (sqr(0.5 - x) + sqr(0.5 + y) < sqr(r))
+            {
+                auto xd = std::sqrt(sqr(r) - sqr(0.5 - x));
+                auto xdp = std::sqrt(sqr(r) - sqr(0.5 + x));
+                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - x) / r) - std::asin((-0.5 - x) / r)) + (0.5 - x) * xd + (0.5 + x) * xdp) - (-0.5 - y);
+            }
             auto xd = std::sqrt(sqr(r) - sqr(x + 0.5));
             auto yd = std::sqrt(sqr(r) - sqr(y + 0.5));
             return 0.5 * (sqr(r) * (HALF_PI - std::asin((-x - 0.5) / r) - std::asin((-y - 0.5) / r)) + (x + 0.5) * xd + (y + 0.5) * yd) + (x + 0.5) * (y + 0.5);
@@ -91,6 +115,13 @@ struct CircleCoverageTest : testing::Test
             if (sqr(x - 0.5) + sqr(y - 0.5) < sqr(r))
                 return 0.5 - y;
 
+            if (0.5 - x < r)
+            {
+                auto xd = std::sqrt(sqr(r) - sqr(0.5 - x));
+                auto yd = std::sqrt(sqr(r) - sqr(0.5 - y));
+                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - x) / r) - std::acos((0.5 - y) / r)) + (0.5 - x) * xd + (0.5 - y) * yd) - (0.5 - y) * (-0.5 - x);
+            }
+
             auto d = std::sqrt(sqr(r) - sqr(0.5 - y));
             return 0.5 * sqr(r) * std::asin((0.5 - y) / r) + (0.5 - y) * d * (0.5 + (x + 0.5) / d);
         }
@@ -101,6 +132,13 @@ struct CircleCoverageTest : testing::Test
 
             if (sqr(x - 0.5) + sqr(y - 0.5) < sqr(r))
                 return 0.5 - x;
+
+            if (0.5 - y < r)
+            {
+                auto xd = std::sqrt(sqr(r) - sqr(0.5 - x));
+                auto yd = std::sqrt(sqr(r) - sqr(0.5 - y));
+                return 0.5 * (sqr(r) * (HALF_PI - std::acos((0.5 - x) / r) - std::acos((0.5 - y) / r)) + (0.5 - x) * xd + (0.5 - y) * yd) - (0.5 - x) * (-0.5 - y);
+            }
 
             auto d = std::sqrt(sqr(r) - sqr(0.5 - x));
             return 0.5 * sqr(r) * std::asin((0.5 - x) / r) + (0.5 - x) * d * (0.5 + (y + 0.5) / d);
@@ -214,12 +252,43 @@ TEST_F(CircleCoverageTest, sector_intersecting_left_and_bottom)
 {
     check_sector_at(-0.75, -0.75, 0.3536);
     check_sector_at(-1.25, -0.75, 0.9);
+    check_sector_at(-2, -3, 3);
+    check_sector_at(-3, -3, 4.1);
 }
 
-TEST_F(CircleCoverageTest, DISABLED_sector_intersecting_left_right_and_top)
+TEST_F(CircleCoverageTest, sector_intersecting_left_right_and_top)
 {
     check_sector_at(-0.75, -0.25, 1.4577);
     check_sector_at(-0.75, -0.25, 1.29);
+}
+
+TEST_F(CircleCoverageTest, sector_left_down_intersecting_right_and_top)
+{
+    check_sector_at(-0.75, -1, 1.95);
+    check_sector_at(-0.75, -1, 1.75);
+    check_sector_at(-1.25, -1.25, 2.47);
+}
+
+TEST_F(CircleCoverageTest, sector_left_intersecting_top_and_bottom)
+{
+    check_sector_at(-1, -0.75, 1.3463);
+    check_sector_at(-3, -1, 3.2016);
+    check_sector_at(-3, -1, 3.45);
+}
+
+TEST_F(CircleCoverageTest, DISABLED_all_sectors)
+{
+    for (auto r : {0.2, 0.25, 0.3, 0.7, 0.8, 0.99, 1.0, 1.2, 1.25, 1.5, 2.0, 3.0, 5.0, 10.0, 40.0})
+    {
+        std::cout << "%" << std::flush;
+        for (auto x = -0.5 - r; x <= 0.5; x += 0.0625)
+        {
+            std::cout << "." << std::flush;
+            for (auto y = -0.5 - r; y <= 0.5; y += 0.0625)
+                if (x >= y)
+                    check_sector_at(x, y, r);
+        }
+    }
 }
 
 TEST_F(CircleCoverageTest, DISABLED_centered_inside)
