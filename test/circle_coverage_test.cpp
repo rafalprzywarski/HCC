@@ -171,18 +171,16 @@ struct CircleCoverageTest : testing::Test
         double cxr = opp(xr);
         double cyr = opp(yr);
         auto a = [=](double l) { return std::asin(l / r); };
-        double axl = a(-xl);
-        double ayl = a(-yl);
-        double axr = a(-xr);
-        double ayr = a(-yr);
 
         if (xl >= r || 0 >= xr + r || yl >= 0 || 0 >= yr + r)
             return 0;
 
-        auto aa = [=](double s, double x, double y, double xf)
-                      { return 0.5 * (r2 * (a(x) + a(y) - HALF_PI * s) + x * opp(x) + y * opp(y)) + x * xf; };
-        auto gf = [=](double x1, double cx1, double x2, double cx2)
-                      { return 0.5 * r2 * (std::asin(x1) + std::asin(x2) - x1 * cx1 - x2 * cx2); };
+        auto m2 = [=](double x1, double cx1, double x2, double cx2)
+                      { return 0.5 * (r2 * (a(x1) + a(x2)) - x1 * cx1 - x2 * cx2); };
+        auto aa = [=](double x, double y)
+                      {
+                          return m2(-opp(x), x, y, -opp(y));
+                      };
 
         if (yr > 0)
         {
@@ -191,33 +189,32 @@ struct CircleCoverageTest : testing::Test
                 if (xr <= 0) // xl <= -1
                 {
                     if (xr2 + yl2 > r2)
-                        return 0.5 * (r2 * (HALF_PI - axr) + xr * cxr);
+                        return m2(cxr, -xr, 0, 0);
                     if (xl2 + yl2 < r2)
                         return -yl;
-                    if (-r < xl)
-                        return 0.5 * (r2 * (axl + ayl - HALF_PI) - xl * cxl - yl * cyl) - yl * xr;
-                    return 0.5 * (r2 * ayl - cyl * yl) - xr * yl;
+                    if (r > -xl)
+                        return m2(-xl, -cxl, -cyl, -yl) - yl * xr;
+                    return m2(0, 0, -yl, -cyl) - xr * yl;
                 }
                 else // -1 < xl <= 0
                 {
                     if (-yl >= r)
                     {
-
-                        return aa(1, std::min(-xl, r), std::min(-yl, r), 0) + aa(1, std::min(r, xr), std::min(-yl, r), 0);
+                        return aa(std::min(-xl, r), std::min(-yl, r)) + aa(std::min(r, xr), std::min(-yl, r));
                     }
                     else
                     {
                         double p = 0, n = 0;
 
                         if (xl2 + yl2 <= r2)
-                            p = std::min(-xl, r) * -yl;
+                            p = std::min(-xl, r) * std::min(-yl, r);
                         else
-                            p = aa(1, std::min(-xl, r), std::min(-yl, r), 0);
+                            p = aa(std::min(-xl, r), std::min(-yl, r));
 
                         if (xr2 + yl2 <= r2)
-                            n = -xr * yl;
+                            n = std::min(r, xr) * std::min(-yl, r);
                         else
-                            n = aa(1, std::min(r, xr), std::min(-yl, r), 0);
+                            n = aa(std::min(r, xr), std::min(-yl, r));
 
                         return p + n;
                     }
@@ -225,74 +222,64 @@ struct CircleCoverageTest : testing::Test
             }
             else
             {
-                if (xr <= 0)
-                    return 0;
-                else
-                {
-                    if (xl2 + yl2 > r2)
-                        return 0.5 * (r2 * (HALF_PI + axl) + -xl * cxl);
-                    if (xr2 + yl2 < r2)
-                        return -yl;
-                    if (xr < r)
-                        return aa(1, xr, -yl, 0) + yl * xl;
-                    return 0.5 * (r2 * ayl - cyl * yl) + xl * yl;
-                }
+                if (xl2 + yl2 > r2)
+                    return m2(cxl, xl, 0, 0);
+                if (xr2 + yl2 < r2)
+                    return -yl;
+                if (xr < r)
+                    return m2(-cxr, xr, -yl, -cyl) + yl * xl;
+                return m2(0, r, -yl, -cyl) + xl * yl;
             }
         }
         else
         {
             if (xl >= 0)
             {
-                if (xr <= 0)
+                if (xl2 + yr2 >= r2)
                     return 0;
-                else
-                {
-                    if (xl2 + yr2 >= r2)
-                        return 0;
-                    if (xr2 + yl2 <= r2)
-                        return 1;
-                    if (xl2 + yl2 < r2 && xr2 + yr2 < r2)
-                        return 0.5 * (r2 * (ayl - axr - HALF_PI) - yl * cyl + xr * cxr) + yr + xl * yl;
-                    if (xl2 + yl2 < r2)
-                        return 0.5 * (r2 * (ayl - ayr) - yl * cyl + yr * cyr) - xl;
-                    if (xr2 + yr2 < r2)
-                        return 0.5 * (r2 * (axl - axr) + xr * cxr - xl * cxl) + yr;
-                    return 0.5 * (r2 * (HALF_PI + axl - ayr) - xl * cxl + yr * cyr) - xl * yr;
-                }
+                if (xr2 + yl2 <= r2)
+                    return 1;
+                if (xl2 + yl2 < r2 && xr2 + yr2 < r2)
+                    return m2(xr, -cxr, -cyl, -yl) + xr * yl + 1;
+                if (xl2 + yl2 < r2)
+                    return m2(-yl, -cyl, yr, -cyr) - xl;
+                if (xr2 + yr2 < r2)
+                    return m2(-xl, -cxl, xr, -cxr) + yr;
+                return m2(-xl, -cxl, cyr, -yr) - xl * yr;
             }
             else
             {
                 if (xr <= 0)
                 {
                     if (xr2 + yr2 >= r2)
-                        return aa(0, 0, 0, 999);
+                        return 0;
                     if (xl2 + yl2 <= r2)
                         return 1;
                     if (xr2 + yl2 < r2 && xl2 + yr2 < r2)
-                        return 0.5 * (r2 * (axl + ayl - HALF_PI) - yl * cyl - xl * cxl) - xl * yl + 1;
+                        return m2(-cxl, -xl, -yl, -cyl) - xl * yl + 1;
                     if (xr2 + yl2 < r2)
-                        return 0.5 * (r2 * (ayl - ayr) - yl * cyl + yr * cyr) + xr;
+                        return m2(-yl, -cyl, yr, -cyr) + xr;
                     if (xl2 + yr2 < r2)
-                        return 0.5 * (r2 * (axl - axr) - xl * cxl + xr * cxr) + yr;
-                    return 0.5 * (r2 * (HALF_PI - axr - ayr) + xr * cxr + yr * cyr) + xr * yr;
+                        return m2(-xl, -cxl, xr, -cxr) + yr;
+                    return m2(cxr, -xr, yr, -cyr) + xr * yr;
                 }
                 else
                 {
                     double p = 0, n = 0;
 
                     if (xl2 > r2 - yr2)
-                        p = aa(-1, 0, yr, 999);
+                        p = m2(0, 0, cyr, -yr);
                     else if (xl2 + yl2 < r2)
-                        p = aa(0, -xl, xl, 1);
+                        p = m2(-xl, cxl, xl, cxl) - xl;
                     else
-                        p = aa(1, -xl, std::min(-yl, r), yr);
+                        p = aa(-xl, std::min(-yl, r)) - xl * yr;
 
                     if (xr2 > r2 - yr2)
-                        n = aa(-1, 0, yr, 0);
+                        n = m2(0, 0, cyr, -yr);
                     else if (xr2 + yl2 < r2)
-                        n = aa(0, xr, -xr, 1);
+                        n = m2(xr, cxr, -xr, cxr) + xr;
                     else
-                        n = aa(1, xr, std::min(-yl, r), yr);
+                        n = aa(xr, std::min(-yl, r)) + xr * yr;
 
                     return p + n;
                 }
