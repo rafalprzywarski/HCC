@@ -250,11 +250,6 @@ struct CircleCoverageTest : testing::Test
         return x * (1 - a) + y * a;
     }
 
-    static double sign(double x)
-    {
-        return !(x < 0) - !(x > 0);
-    }
-
     static double step(double edge, double x)
     {
         return edge >= x;
@@ -277,26 +272,25 @@ struct CircleCoverageTest : testing::Test
         double yl = y - 0.5; // -0.5 <= yl < r
         double yr = y + 0.5; //  0.5 <= yr < r + 1
         double xr2 = xr * xr;
-        double xl2 = xl * xl;
         double yr2 = yr * yr;
-        double yl2 = yl * yl;
-        auto opp = [=](double l) { return std::sqrt(r2 - l * l); };
-        auto Q = 0.25 * r2 * M_PI;
-
-        double bxl = clamp(xl, -r, r);
-        double byl = clamp(yl, -r, r);
-        double bxr = std::min(xr, r);
-        double byr = std::min(yr, r);
-        double cbxl = opp(bxl);
-        double cbyl = opp(byl);
-        double cbxr = opp(bxr);
-        double cbyr = opp(byr);
 
         if (sqr(std::max(xl, 0.0)) + sqr(std::max(yl, 0.0)) >= r2)
             return 0;
 
         if (xr2 + yr2 <= r2)
             return 1;
+
+        double xl2 = xl * xl;
+        double yl2 = yl * yl;
+
+        double bxl = clamp(xl, -r, r);
+        double byl = clamp(yl, -r, r);
+        double bxr = std::min(xr, r);
+        double byr = std::min(yr, r);
+        double cbxl = std::sqrt(r * r - bxl * bxl);
+        double cbyl = std::sqrt(r * r - byl * byl);
+        double cbxr = std::sqrt(r * r - bxr * bxr);
+        double cbyr = std::sqrt(r * r - byr * byr);
 
         double nxlnyl = xl * yl;
         double nxlyr = -xl * yr;
@@ -307,35 +301,28 @@ struct CircleCoverageTest : testing::Test
         double s_xr2_yl2 = step(r2, xr2 + yl2);
         double s_xr2_yr2 = step(r2, xr2 + yr2);
 
-        double m_nn_bxl =  0.5 * r2 * std::asin(-bxl / r) - 0.5 * bxl * cbxl;
-        double m_nn_cbxl = m_nn_bxl - Q;
-        double m_pp_cbxl = m_nn_bxl + Q;
+        double Q = 0.25 * r2 * M_PI;
+        double m_bxl =  0.5 * (r2 * std::asin(-bxl / r) - bxl * cbxl);
+        double m_ncbxl = m_bxl - Q;
+        double m_pbxl = m_bxl + Q;
+        double m_byl =  0.5 * (r2 * std::asin(-byl / r) - byl * cbyl);
+        double m_bxr = 0.5 * (r2 * std::asin(bxr / r) + bxr * cbxr);
+        double m_ncbxr = m_bxr - Q;
+        double m_byr = 0.5 * (r2 * std::asin(byr / r) + byr * cbyr);
 
-        double m_nn_byl =  0.5 * r2 * std::asin(-byl / r) - 0.5 * byl * cbyl;
-        double m_pp_cbyl = m_nn_byl + Q;
-
-        double m_pn_bxr = 0.5 * r2 * std::asin(bxr / r) + 0.5 * bxr * cbxr;
-        double m_np_cbxr = m_pn_bxr - Q;
-
-        double m_pn_byr = 0.5 * r2 * std::asin(byr / r) + 0.5 * byr * cbyr;
-        double m_np_cbyr = m_pn_byr - Q;
-
-        double b_s_xl2_yl2 = (xl <= 0) ? s_xl2_yl2 : 1;
-        double bi_s_xl2_yl2 = (xl > 0) ? s_xl2_yl2 : 1;
-        double b_s_xl2_yr2 = (xl <= 0) ? s_xl2_yr2 : 1;
-        double bi_s_xl2_yr2 = (xl > 0) ? s_xl2_yr2 : 1;
-        double m_cbxl_byl_nxlnyl = mix(m_nn_cbxl + m_nn_byl, nxlnyl, b_s_xl2_yl2);
-        double m_cbxl_byr_nxlyr  = mix(m_nn_cbxl + m_pn_byr, nxlyr,  b_s_xl2_yr2);
-        double m_cbxr_byl_xrnyl  = mix(m_np_cbxr + m_nn_byl, xrnyl,  s_xr2_yl2);
-        double m_cbxr_byr_xryr   = mix(m_np_cbxr + m_pn_byr, xryr,   s_xr2_yr2);
+        double s_xl = step(0, xl);
+        double b_s_xl2_yl2 = mix(1, s_xl2_yl2, s_xl);
+        double b_s_xl2_yr2 = mix(1, s_xl2_yr2, s_xl);
+        double bi_s_xl2_yl2 = mix(s_xl2_yl2, 1, s_xl);
+        double bi_s_xl2_yr2 = mix(s_xl2_yr2, 1, s_xl);
+        double m_ncbxl_byl_nxlnyl = mix(m_ncbxl + m_byl, nxlnyl, b_s_xl2_yl2);
+        double m_ncbxl_byr_nxlyr  = mix(m_ncbxl + m_byr, nxlyr,  b_s_xl2_yr2);
+        double m_ncbxr_byl_xrnyl  = mix(m_ncbxr + m_byl, xrnyl,  s_xr2_yl2);
+        double m_ncbxr_byr_xryr   = mix(m_ncbxr + m_byr, xryr,   s_xr2_yr2);
 
         return
-            mix(mix(m_pp_cbxl, m_cbxl_byl_nxlnyl + m_cbxr_byl_xrnyl, bi_s_xl2_yl2) + mix(m_pp_cbxl, m_cbxl_byr_nxlyr + m_cbxr_byr_xryr, bi_s_xl2_yr2),
-                mix(m_nn_bxl + m_pp_cbyl + nxlnyl,
-                    mix(m_pn_byr + m_nn_byl - xrnyl,
-                        m_pn_bxr + m_np_cbyr,
-                        s_xr2_yl2) + 1 - xryr,
-                    s_xl2_yr2),
+            mix(mix(m_pbxl, m_ncbxl_byl_nxlnyl + m_ncbxr_byl_xrnyl, bi_s_xl2_yl2) + mix(m_pbxl, m_ncbxl_byr_nxlyr + m_ncbxr_byr_xryr, bi_s_xl2_yr2),
+                mix(m_bxl + m_byl + Q + nxlnyl, mix(m_byr + m_byl - xrnyl, m_bxr + m_byr - Q, s_xr2_yl2) + 1 - xryr, s_xl2_yr2),
                 step(yl, 0));
     }
 
