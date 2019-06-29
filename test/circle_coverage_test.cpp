@@ -267,10 +267,10 @@ struct CircleCoverageTest : testing::Test
         if (y > x)
             std::swap(x, y);
         double r2 = r * r;
-        double xl = x - 0.5; // -0.5 <= yl < r
-        double xr = x + 0.5; // 0.5 <= yr < r + 1
-        double yl = y - 0.5; // -0.5 <= yl < r
-        double yr = y + 0.5; //  0.5 <= yr < r + 1
+        double xl = x - 0.5;
+        double xr = x + 0.5;
+        double yl = y - 0.5;
+        double yr = y + 0.5;
         double xr2 = xr * xr;
         double yr2 = yr * yr;
 
@@ -382,6 +382,29 @@ struct CircleCoverageTest : testing::Test
             << "at (" << cy << ", " << -cx << ", " << cr << ")";
         EXPECT_NEAR(expected, circle_coverage(-cy, -cx, cr), PRECISION)
             << "at (" << -cy << ", " << -cx << ", " << cr << ")";
+    }
+
+    std::vector<std::uint8_t> render_circle_coverage(double cx, double cy, double cr, int size)
+    {
+        std::vector<std::uint8_t> pixels;
+        pixels.reserve(size * size);
+        for (int y = 0; y < size; ++y)
+            for (int x = 0; x < size; ++x)
+                pixels.push_back(clamp(circle_coverage(cx - x - 0.5, cy - y - 0.5, cr), 0, 1) * 255);
+        return pixels;
+    }
+
+    void save_pgm(std::string fname, int width, int height, const std::vector<std::uint8_t>& pixels)
+    {
+        auto f = std::fopen(fname.c_str(), "wb");
+        std::fprintf(f, "P5\n %d\n %d\n 255\n", width, height);
+        std::fwrite(pixels.data(), pixels.size(), 1, f);
+        std::fclose(f);
+    }
+
+    void render_circle_coverage_to_pgm(std::string fname, double cx, double cy, double cr, int size)
+    {
+        save_pgm(fname, size, size, render_circle_coverage(cx, cy, cr, size));
     }
 };
 
@@ -504,7 +527,18 @@ TEST_F(CircleCoverageTest, all_half_circles_sectors)
 TEST_F(CircleCoverageTest, all_circles)
 {
     for (auto r : {0.05, 0.1, 0.2, 0.25, 0.3, 0.7, 0.8, 0.99, 1.0, 1.2, 1.25, 1.5, 2.0, 3.0, 5.0, 10.0, 40.0})
-        for (auto x = -0.5 - r; x <= 0.5; x += 0.0625)
-            for (auto y = -0.5 - r; y <= 0.5; y += 0.0625)
+        for (auto x = -10.5 - r; x <= 10.5; x += 0.0625)
+            for (auto y = -10.5 - r; y <= 10.5; y += 0.0625)
                 ASSERT_NO_FATAL_FAILURE(check_circle_at(x, y, r));
+}
+
+TEST_F(CircleCoverageTest, render_circles)
+{
+    render_circle_coverage_to_pgm("circle8.pgm", 10, 20, 8, 256);
+    render_circle_coverage_to_pgm("circle16.pgm", 10, 20, 16, 256);
+    render_circle_coverage_to_pgm("circle30.pgm", 10, 20, 30, 256);
+    for (int i = 10; i < 40; ++i)
+        render_circle_coverage_to_pgm("circle_movement_" + std::to_string(i) + ".pgm", 30 + i / 15.0, 12, 10, 256);
+    for (int i = 10; i < 40; ++i)
+        render_circle_coverage_to_pgm("circle_growth_" + std::to_string(i) + ".pgm", 30, 12, 10 + i / 15.0, 256);
 }
