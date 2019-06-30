@@ -81,8 +81,7 @@
                           :origin [390 220]
                           :extents [370 220]
                           :center [-10 0]
-                          :radius 100
-                          :inverted? :true}]}]
+                          :radius -100}]}]
    [counter]
    [highligted-label [700 80] "994-772"]
    [highligted-label [700 125] "467-385"]

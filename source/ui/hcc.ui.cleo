@@ -122,9 +122,8 @@
      {:type :arc
       :origin (v2+ origin [(- width inner-radius) 0])
       :extents [inner-radius inner-radius]
-      :radius inner-radius
+      :radius (- inner-radius)
       :center [inner-radius 0]
-      :inverted? :true
       :color color}]))
 
 
@@ -157,8 +156,8 @@
     [width height] :extents
     [r g b a] :color
     [center-x center-y] :center
-    :keys [radius inverted?]}]
-  (si/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255) (+ origin-x center-x) (+ origin-y center-y) radius (if inverted? -1 1)))
+    :keys [radius]}]
+  (si/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255) (+ origin-x center-x) (+ origin-y center-y) radius))
 
 
 (defmethod render-primitive! :rect

@@ -120,8 +120,9 @@ const std::string arc_fragment_shader_source =
 "}\n"
 "float smoothSample()\n"
 "{\n"
-"    float sample = smoothStep(v_Circle.z - 0.7071, v_Circle.z + 0.7071, distance(v_Position, v_Circle.xy));\n"
-"    return 0.5 - v_Circle.w * (sample - 0.5);\n"
+"    float radius = abs(v_Circle.z);\n"
+"    float sample = smoothStep(radius - 0.7071, radius + 0.7071, distance(v_Position, v_Circle.xy));\n"
+"    return 0.5 - sign(v_Circle.z) * (sample - 0.5);\n"
 "}\n"
 "void main()\n"
 "{\n"
@@ -720,7 +721,7 @@ std::int64_t arc(
     std::int64_t x0, std::int64_t y0,
     std::int64_t x1, std::int64_t y1,
     std::int64_t r, std::int64_t g, std::int64_t b, std::int64_t a,
-    std::int64_t cx, std::int64_t cy, std::int64_t cr, std::int64_t corient)
+    std::int64_t cx, std::int64_t cy, std::int64_t cr)
 {
     if (!state)
         return 0;
@@ -733,7 +734,7 @@ std::int64_t arc(
         GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y0), GLfloat(x1), GLfloat(y1),
         GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y1), GLfloat(x0), GLfloat(y1)}};
     std::array<GLfloat, 4> color{{r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f}};
-    std::array<GLfloat, 4> circle{{GLfloat(cx), GLfloat(cy), GLfloat(cr), GLfloat(corient)}};
+    std::array<GLfloat, 4> circle{{GLfloat(cx), GLfloat(cy), GLfloat(cr), GLfloat(0)}};
     state->arc_vertices.insert(end(state->arc_vertices), begin(vertices), end(vertices));
     for (int i = 0; i < 6; ++i)
     {
@@ -748,7 +749,7 @@ std::int64_t rect(
     std::int64_t x1, std::int64_t y1,
     std::int64_t r, std::int64_t g, std::int64_t b, std::int64_t a)
 {
-    return arc(x0, y0, x1, y1, r, g, b, a, 0, 0, -16, -1);
+    return arc(x0, y0, x1, y1, r, g, b, a, x0, y0, std::max(x1, y1) + 1);
 }
 
 std::int64_t load_font(const char *filename, std::int64_t size)
