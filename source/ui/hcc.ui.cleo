@@ -138,10 +138,10 @@
 
 
 (defn mapcatv [f coll]
-  (persistent! (reduce1 (fn [out x]
-                          (reduce1 conj! out (f x)))
-                        (transient [])
-                        coll)))
+  (persistent! (reduce (fn [out x]
+                         (reduce conj! out (f x)))
+                       (transient [])
+                       coll)))
 
 
 (defn render-elems [palette elems state]
@@ -264,10 +264,10 @@
 
 
 (defn handle-events [elems app-state events]
-  (reduce1 (fn [app-state event]
-             (handle-event app-state elems event))
-           app-state
-           events))
+  (reduce (fn [app-state event]
+            (handle-event app-state elems event))
+          app-state
+          events))
 
 
 (defn render-primitives! [primitives [bg-r bg-g bg-b]]
@@ -280,9 +280,9 @@
 
 
 (defn index-elems [elems]
-  (reduce1 (fn [indexed elem] (assoc indexed (:id (second elem)) elem))
-           {}
-           (filter (fn [elem] (:id (second elem))) elems)))
+  (reduce (fn [indexed elem] (assoc indexed (:id (second elem)) elem))
+          {}
+          (filter (fn [elem] (:id (second elem))) elems)))
 
 
 (defn render-components [components state]
@@ -315,12 +315,12 @@
 
 (defn step [app-state events]
   (let [app-state
-        (reduce1 (fn [app-state event]
-                   (render (if-let [elems (::elems app-state)]
-                             (handle-event app-state elems event)
-                             app-state)))
-                 app-state
-                 events)]
+        (reduce (fn [app-state event]
+                  (render (if-let [elems (::elems app-state)]
+                            (handle-event app-state elems event)
+                            app-state)))
+                app-state
+                events)]
     (if (not (rendered? app-state))
       (render app-state)
       app-state)))
@@ -337,18 +337,18 @@
 
 
 (defn load-fonts! [fs]
-  (reset! fonts (reduce1 (fn [out {:keys [name path size]}]
-                           (assoc out name (si/load-font path size)))
-                         {}
-                         fs))
+  (reset! fonts (reduce (fn [out {:keys [name path size]}]
+                          (assoc out name (si/load-font path size)))
+                        {}
+                        fs))
   (println "loaded" (count @fonts) "fonts"))
 
 
 (defn load-images! [imgs]
-  (reset! images (reduce1 (fn [out {:keys [name path]}]
-                            (assoc out name (si/load-image path)))
-                          {}
-                          imgs))
+  (reset! images (reduce (fn [out {:keys [name path]}]
+                           (assoc out name (si/load-image path)))
+                         {}
+                         imgs))
   (println "loaded" (count @images) "images"))
 
 

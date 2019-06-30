@@ -6,7 +6,7 @@
 
 
 (defmacro defcfns [libname & decls]
-  `(do ~@(map1 (fn [decl] (list 'def (first decl) (apply gen-icfn (conj (next decl) libname)))) decls)))
+  `(do ~@(map (fn [decl] (list 'def (first decl) (apply gen-icfn (conj (next decl) libname)))) decls)))
 
 
 (defcfns "Release/source/system/libhcc_system.so"
