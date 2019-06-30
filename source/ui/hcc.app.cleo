@@ -200,6 +200,7 @@
              :text "226-7322"
              :origin [400 150]
              :extents [200 60]
+             :vaxis 25
              :text-color :black
              :text-align :right
              :text-valign :baseline

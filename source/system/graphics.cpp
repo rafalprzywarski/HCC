@@ -120,8 +120,9 @@ const std::string arc_fragment_shader_source =
 "}\n"
 "float smoothSample()\n"
 "{\n"
-"    float radius = abs(v_Circle.z);\n"
-"    float sample = smoothStep(radius - 0.7071, radius + 0.7071, distance(v_Position, v_Circle.xy));\n"
+"    float a = abs(v_Circle.z);\n"
+"    float b = abs(v_Circle.w);\n"
+"    float sample = smoothStep(a - 0.7071, a + 0.7071, length((v_Position - v_Circle.xy) * vec2(1, a / b)));\n"
 "    return 0.5 - sign(v_Circle.z) * (sample - 0.5);\n"
 "}\n"
 "void main()\n"
@@ -721,20 +722,20 @@ std::int64_t arc(
     std::int64_t x0, std::int64_t y0,
     std::int64_t x1, std::int64_t y1,
     std::int64_t r, std::int64_t g, std::int64_t b, std::int64_t a,
-    std::int64_t cx, std::int64_t cy, std::int64_t cr)
+    std::int64_t cx, std::int64_t cy, std::int64_t ca, std::int64_t cb)
 {
     if (!state)
         return 0;
     auto scale = state->display_scale;
     x0 *= scale; y0 *= scale;
     x1 *= scale; y1 *= scale;
-    cx *= scale; cy *= scale; cr *= scale;
+    cx *= scale; cy *= scale; ca *= scale; cb *= scale;
 
     std::array<GLfloat, 12> vertices{{
         GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y0), GLfloat(x1), GLfloat(y1),
         GLfloat(x0), GLfloat(y0), GLfloat(x1), GLfloat(y1), GLfloat(x0), GLfloat(y1)}};
     std::array<GLfloat, 4> color{{r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f}};
-    std::array<GLfloat, 4> circle{{GLfloat(cx), GLfloat(cy), GLfloat(cr), GLfloat(0)}};
+    std::array<GLfloat, 4> circle{{GLfloat(cx), GLfloat(cy), GLfloat(ca), GLfloat(cb)}};
     state->arc_vertices.insert(end(state->arc_vertices), begin(vertices), end(vertices));
     for (int i = 0; i < 6; ++i)
     {
@@ -749,7 +750,8 @@ std::int64_t rect(
     std::int64_t x1, std::int64_t y1,
     std::int64_t r, std::int64_t g, std::int64_t b, std::int64_t a)
 {
-    return arc(x0, y0, x1, y1, r, g, b, a, x0, y0, std::max(x1, y1) + 1);
+    auto radius = std::max(std::abs(x1 - x0), std::abs(y1 - y0)) * 2;
+    return arc(x0, y0, x1, y1, r, g, b, a, x0, y0, radius, radius);
 }
 
 std::int64_t load_font(const char *filename, std::int64_t size)

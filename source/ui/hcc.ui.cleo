@@ -60,34 +60,37 @@
 (defmethod render-elem :button
   [palette
    [type {[width height] :extents
-          :keys [id origin extents color font text text-color text-align text-valign margin button-style]}]
+          :keys [id origin extents vaxis color font text text-color text-align text-valign margin button-style]}]
    {pressed-id ::pressed-id}]
   (let [color (if (and id (= id pressed-id)) :highlight color)
         color (palette color)
         text-color (palette text-color)]
     (if (= button-style :rounded)
-      (let [radius (quot height 2)]
+      (let [radius (quot height 2)
+            vaxis (or vaxis radius)]
         [{:type :arc
           :origin origin
-          :extents [radius height]
-          :radius radius
-          :center [radius radius]
+          :extents [vaxis height]
+          :vaxis vaxis
+          :haxis radius
+          :center [vaxis radius]
           :color color}
          {:type :arc
-          :origin (v2+ origin [(- width radius) 0])
-          :extents [radius height]
-          :radius radius
+          :origin (v2+ origin [(- width vaxis) 0])
+          :extents [vaxis height]
+          :vaxis vaxis
+          :haxis radius
           :center [0 radius]
           :color color}
          {:type :rect
-          :origin (v2+ origin [radius 0])
-          :extents (v2+ extents [(* -2 radius) 0])
+          :origin (v2+ origin [vaxis 0])
+          :extents (v2+ extents [(* -2 vaxis) 0])
           :color color}
          (merge {:type :text
                  :font font
                  :text text
                  :text-color text-color}
-                (align-text text text-align text-valign margin (v2+ origin [radius 0]) (v2+ extents [(* -2 radius) 0])))])
+                (align-text text text-align text-valign margin (v2+ origin [vaxis 0]) (v2+ extents [(* -2 vaxis) 0])))])
       [{:type :rect
         :origin origin
         :extents extents
@@ -156,8 +159,8 @@
     [width height] :extents
     [r g b a] :color
     [center-x center-y] :center
-    :keys [radius]}]
-  (si/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255) (+ origin-x center-x) (+ origin-y center-y) radius))
+    :keys [radius vaxis haxis]}]
+  (si/arc! origin-x origin-y (+ origin-x width) (+ origin-y height) r g b (or a 255) (+ origin-x center-x) (+ origin-y center-y) (or vaxis radius) (or haxis radius)))
 
 
 (defmethod render-primitive! :rect
