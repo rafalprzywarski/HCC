@@ -4,6 +4,7 @@
 struct CircleCoverageTest : testing::Test
 {
     static constexpr double PRECISION = 0.00001;
+    static constexpr double FLOAT_PRECISION = 0.001;
     static constexpr double PI = M_PI;
     static constexpr double HALF_PI = PI / 2;
 
@@ -245,85 +246,91 @@ struct CircleCoverageTest : testing::Test
         return -1;
     }
 
-    static double mix(double x, double y, double a)
+    static float mix(float x, float y, float a)
     {
         return x * (1 - a) + y * a;
     }
 
-    static double step(double edge, double x)
+    static float step(float edge, float x)
     {
         return edge >= x;
     }
 
-    static double clamp(double x, double min_val, double max_val)
+    static float clamp(float x, float min_val, float max_val)
     {
         return std::min(std::max(x, min_val), max_val);
     }
 
-    static double circle_coverage(double x, double y, double r)
+    static float sqrt(float x) { return std::sqrt(x); }
+    static float asin(float x) { return std::asin(x); }
+    static float abs(float x) { return std::abs(x); }
+    static float min(float x, float y) { return std::min(x, y); }
+    static float max(float x, float y) { return std::max(x, y); }
+
+    static float circle_coverage(float x, float y, float r)
     {
-        x = std::abs(x);
-        y = std::abs(y);
+        x = abs(x);
+        y = abs(y);
         if (y > x)
             std::swap(x, y);
-        double r2 = r * r;
-        double xl = x - 0.5;
-        double xr = x + 0.5;
-        double yl = y - 0.5;
-        double yr = y + 0.5;
-        double xr2 = xr * xr;
-        double yr2 = yr * yr;
+        float r2 = r * r;
+        float xl = x - 0.5f;
+        float xr = x + 0.5f;
+        float yl = y - 0.5f;
+        float yr = y + 0.5f;
+        float xr2 = xr * xr;
+        float yr2 = yr * yr;
 
-        if (sqr(std::max(xl, 0.0)) + sqr(std::max(yl, 0.0)) >= r2)
+        if (sqr(max(xl, 0.0f)) + sqr(max(yl, 0.0f)) >= r2)
             return 0;
 
         if (xr2 + yr2 <= r2)
             return 1;
 
-        double xl2 = xl * xl;
-        double yl2 = yl * yl;
+        float xl2 = xl * xl;
+        float yl2 = yl * yl;
 
-        double bxl = clamp(xl, -r, r);
-        double byl = clamp(yl, -r, r);
-        double bxr = std::min(xr, r);
-        double byr = std::min(yr, r);
-        double cbxl = std::sqrt(r * r - bxl * bxl);
-        double cbyl = std::sqrt(r * r - byl * byl);
-        double cbxr = std::sqrt(r * r - bxr * bxr);
-        double cbyr = std::sqrt(r * r - byr * byr);
+        float bxl = clamp(xl, -r, r);
+        float byl = clamp(yl, -r, r);
+        float bxr = min(xr, r);
+        float byr = min(yr, r);
+        float cbxl = sqrt(r * r - bxl * bxl);
+        float cbyl = sqrt(r * r - byl * byl);
+        float cbxr = sqrt(r * r - bxr * bxr);
+        float cbyr = sqrt(r * r - byr * byr);
 
-        double nxlnyl = xl * yl;
-        double nxlyr = -xl * yr;
-        double xrnyl = xr * -yl;
-        double xryr = xr * yr;
-        double s_xl2_yl2 = step(r2, xl2 + yl2);
-        double s_xl2_yr2 = step(r2, xl2 + yr2);
-        double s_xr2_yl2 = step(r2, xr2 + yl2);
-        double s_xr2_yr2 = step(r2, xr2 + yr2);
+        float nxlnyl = xl * yl;
+        float nxlyr = -xl * yr;
+        float xrnyl = xr * -yl;
+        float xryr = xr * yr;
+        float s_xl2_yl2 = step(r2, xl2 + yl2);
+        float s_xl2_yr2 = step(r2, xl2 + yr2);
+        float s_xr2_yl2 = step(r2, xr2 + yl2);
+        float s_xr2_yr2 = step(r2, xr2 + yr2);
 
-        double Q = 0.25 * r2 * M_PI;
-        double m_bxl =  0.5 * (r2 * std::asin(-bxl / r) - bxl * cbxl);
-        double m_ncbxl = m_bxl - Q;
-        double m_pbxl = m_bxl + Q;
-        double m_byl =  0.5 * (r2 * std::asin(-byl / r) - byl * cbyl);
-        double m_bxr = 0.5 * (r2 * std::asin(bxr / r) + bxr * cbxr);
-        double m_ncbxr = m_bxr - Q;
-        double m_byr = 0.5 * (r2 * std::asin(byr / r) + byr * cbyr);
+        float Q = 0.25f * 3.1415926535897932384626433832795f * r2;
+        float m_bxl =  0.5f * (r2 * std::atan2(-bxl, cbxl) - bxl * cbxl);
+        float m_ncbxl = m_bxl - Q;
+        float m_pbxl = m_bxl + Q;
+        float m_byl =  0.5f * (r2 * std::atan2(-byl, cbyl) - byl * cbyl);
+        float m_bxr = 0.5f * (r2 * std::atan2(bxr, cbxr) + bxr * cbxr);
+        float m_ncbxr = m_bxr - Q;
+        float m_byr = 0.5f * (r2 * std::atan2(byr, cbyr) + byr * cbyr);
 
-        double s_xl = step(0, xl);
-        double b_s_xl2_yl2 = mix(1, s_xl2_yl2, s_xl);
-        double b_s_xl2_yr2 = mix(1, s_xl2_yr2, s_xl);
-        double bi_s_xl2_yl2 = mix(s_xl2_yl2, 1, s_xl);
-        double bi_s_xl2_yr2 = mix(s_xl2_yr2, 1, s_xl);
-        double m_ncbxl_byl_nxlnyl = mix(m_ncbxl + m_byl, nxlnyl, b_s_xl2_yl2);
-        double m_ncbxl_byr_nxlyr  = mix(m_ncbxl + m_byr, nxlyr,  b_s_xl2_yr2);
-        double m_ncbxr_byl_xrnyl  = mix(m_ncbxr + m_byl, xrnyl,  s_xr2_yl2);
-        double m_ncbxr_byr_xryr   = mix(m_ncbxr + m_byr, xryr,   s_xr2_yr2);
+        float s_xl = step(0.0f, xl);
+        float b_s_xl2_yl2 = mix(1, s_xl2_yl2, s_xl);
+        float b_s_xl2_yr2 = mix(1, s_xl2_yr2, s_xl);
+        float bi_s_xl2_yl2 = mix(s_xl2_yl2, 1, s_xl);
+        float bi_s_xl2_yr2 = mix(s_xl2_yr2, 1, s_xl);
+        float m_ncbxl_byl_nxlnyl = mix(m_ncbxl + m_byl, nxlnyl, b_s_xl2_yl2);
+        float m_ncbxl_byr_nxlyr  = mix(m_ncbxl + m_byr, nxlyr,  b_s_xl2_yr2);
+        float m_ncbxr_byl_xrnyl  = mix(m_ncbxr + m_byl, xrnyl,  s_xr2_yl2);
+        float m_ncbxr_byr_xryr   = mix(m_ncbxr + m_byr, xryr,   s_xr2_yr2);
 
         return
             mix(mix(m_pbxl, m_ncbxl_byl_nxlnyl + m_ncbxr_byl_xrnyl, bi_s_xl2_yl2) + mix(m_pbxl, m_ncbxl_byr_nxlyr + m_ncbxr_byr_xryr, bi_s_xl2_yr2),
-                mix(m_bxl + m_byl + Q + nxlnyl, mix(m_byr + m_byl - xrnyl, m_bxr + m_byr - Q, s_xr2_yl2) + 1 - xryr, s_xl2_yr2),
-                step(yl, 0));
+                mix(m_bxl + m_byl + Q + nxlnyl, mix(m_byr + m_byl - xrnyl, m_bxr + m_byr - Q, s_xr2_yl2) + 1.0f - xryr, s_xl2_yr2),
+                step(yl, 0.0f));
     }
 
     static void check_at(double cx, double cy, double cr)
@@ -353,13 +360,13 @@ struct CircleCoverageTest : testing::Test
     static void check_circle_at(double cx, double cy, double cr)
     {
         auto expected = sector_coverage(cx, cy, cr) + sector_coverage(-cx, cy, cr) + sector_coverage(cx, -cy, cr) + sector_coverage(-cx, -cy, cr);;
-        ASSERT_NEAR(expected, circle_coverage(cx, cy, cr), PRECISION)
+        ASSERT_NEAR(expected, circle_coverage(cx, cy, cr), FLOAT_PRECISION)
             << "at (" << cx << ", " << cy << ", " << cr << ")";
-        ASSERT_NEAR(expected, circle_coverage(-cx, cy, cr), PRECISION)
+        ASSERT_NEAR(expected, circle_coverage(-cx, cy, cr), FLOAT_PRECISION)
             << "at (" << -cx << ", " << cy << ", " << cr << ")";
-        ASSERT_NEAR(expected, circle_coverage(cx, -cy, cr), PRECISION)
+        ASSERT_NEAR(expected, circle_coverage(cx, -cy, cr), FLOAT_PRECISION)
             << "at (" << cx << ", " << -cy << ", " << cr << ")";
-        ASSERT_NEAR(expected, circle_coverage(-cx, -cy, cr), PRECISION)
+        ASSERT_NEAR(expected, circle_coverage(-cx, -cy, cr), FLOAT_PRECISION)
             << "at (" << -cx << ", " << -cy << ", " << cr << ")";
     }
 
