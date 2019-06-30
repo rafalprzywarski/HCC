@@ -253,7 +253,7 @@ struct CircleCoverageTest : testing::Test
 
     static float step(float edge, float x)
     {
-        return edge >= x;
+        return edge <= x;
     }
 
     static float clamp(float x, float min_val, float max_val)
@@ -303,10 +303,10 @@ struct CircleCoverageTest : testing::Test
         float nxlyr = -xl * yr;
         float xrnyl = xr * -yl;
         float xryr = xr * yr;
-        float s_xl2_yl2 = step(r2, xl2 + yl2);
-        float s_xl2_yr2 = step(r2, xl2 + yr2);
-        float s_xr2_yl2 = step(r2, xr2 + yl2);
-        float s_xr2_yr2 = step(r2, xr2 + yr2);
+        float s_xl2_yl2 = step(xl2 + yl2, r2);
+        float s_xl2_yr2 = step(xl2 + yr2, r2);
+        float s_xr2_yl2 = step(xr2 + yl2, r2);
+        float s_xr2_yr2 = step(xr2 + yr2, r2);
 
         float Q = 0.25f * 3.1415926535897932384626433832795f * r2;
         float m_bxl =  0.5f * (r2 * std::atan2(-bxl, cbxl) - bxl * cbxl);
@@ -317,7 +317,7 @@ struct CircleCoverageTest : testing::Test
         float m_ncbxr = m_bxr - Q;
         float m_byr = 0.5f * (r2 * std::atan2(byr, cbyr) + byr * cbyr);
 
-        float s_xl = step(0.0f, xl);
+        float s_xl = step(xl, 0.0f);
         float b_s_xl2_yl2 = mix(1, s_xl2_yl2, s_xl);
         float b_s_xl2_yr2 = mix(1, s_xl2_yr2, s_xl);
         float bi_s_xl2_yl2 = mix(s_xl2_yl2, 1, s_xl);
@@ -330,7 +330,7 @@ struct CircleCoverageTest : testing::Test
         return
             mix(mix(m_pbxl, m_ncbxl_byl_nxlnyl + m_ncbxr_byl_xrnyl, bi_s_xl2_yl2) + mix(m_pbxl, m_ncbxl_byr_nxlyr + m_ncbxr_byr_xryr, bi_s_xl2_yr2),
                 mix(m_bxl + m_byl + Q + nxlnyl, mix(m_byr + m_byl - xrnyl, m_bxr + m_byr - Q, s_xr2_yl2) + 1.0f - xryr, s_xl2_yr2),
-                step(yl, 0.0f));
+                step(0.0f, yl));
     }
 
     static void check_at(double cx, double cy, double cr)
