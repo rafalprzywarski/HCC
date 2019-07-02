@@ -284,40 +284,44 @@
   [[:shape {:origin [0 440]
             :color :tertiary
             :primitives [{:type :arc
-                          :extents [20 40]
-                          :center [20 20]
-                          :radius 20}
+                          :extents [16 40]
+                          :center [16 20]
+                          :radius 20
+                          :vaxis 16}
                          {:type :rect
-                          :origin [20 0]
-                          :extents [30 40]}
+                          :origin [16 0]
+                          :extents [34 40]}
                          {:type :arc
-                          :origin [780 0]
-                          :extents [20 40]
+                          :origin [784 0]
+                          :extents [16 40]
                           :center [0 20]
-                          :radius 20}
+                          :radius 20
+                          :vaxis 16}
                          {:type :rect
                           :origin [749 0]
-                          :extents [31 40]}
+                          :extents [35 40]}
                          {:type :rect
                           :origin [55 0]
                           :extents [480 40]}]}]
    [:shape {:origin [0 0]
             :color :tertiary
             :primitives [{:type :arc
-                          :extents [20 40]
-                          :center [20 20]
-                          :radius 20}
+                          :extents [16 40]
+                          :center [16 20]
+                          :radius 20
+                          :vaxis 16}
                          {:type :rect
-                          :origin [20 0]
-                          :extents [30 40]}
+                          :origin [16 0]
+                          :extents [34 40]}
                          {:type :arc
-                          :origin [780 0]
-                          :extents [20 40]
+                          :origin [784 0]
+                          :extents [16 40]
                           :center [0 20]
-                          :radius 20}
+                          :radius 20
+                          :vaxis 16}
                          {:type :rect
                           :origin [750 0]
-                          :extents [30 40]}
+                          :extents [34 40]}
                          {:type :rect
                           :origin [55 0]
                           :extents [690 40]}]}]
@@ -356,40 +360,44 @@
   [[:shape {:origin [0 440]
             :color :tertiary
             :primitives [{:type :arc
-                          :extents [20 40]
-                          :center [20 20]
-                          :radius 20}
+                          :extents [16 40]
+                          :center [16 20]
+                          :radius 20
+                          :vaxis 16}
                          {:type :rect
-                          :origin [20 0]
-                          :extents [30 40]}
+                          :origin [16 0]
+                          :extents [34 40]}
                          {:type :arc
-                          :origin [780 0]
-                          :extents [20 40]
+                          :origin [784 0]
+                          :extents [16 40]
                           :center [0 20]
-                          :radius 20}
+                          :radius 20
+                          :vaxis 16}
                          {:type :rect
                           :origin [749 0]
-                          :extents [31 40]}
+                          :extents [35 40]}
                          {:type :rect
                           :origin [55 0]
                           :extents [480 40]}]}]
    [:shape {:origin [0 0]
             :color :tertiary
             :primitives [{:type :arc
-                          :extents [20 40]
-                          :center [20 20]
-                          :radius 20}
+                          :extents [16 40]
+                          :center [16 20]
+                          :radius 20
+                          :vaxis 16}
                          {:type :rect
-                          :origin [20 0]
-                          :extents [30 40]}
+                          :origin [16 0]
+                          :extents [34 40]}
                          {:type :arc
-                          :origin [780 0]
-                          :extents [20 40]
+                          :origin [784 0]
+                          :extents [16 40]
                           :center [0 20]
-                          :radius 20}
+                          :radius 20
+                          :vaxis 16}
                          {:type :rect
                           :origin [750 0]
-                          :extents [30 40]}
+                          :extents [34 40]}
                          {:type :rect
                           :origin [55 0]
                           :extents [690 40]}]}]
