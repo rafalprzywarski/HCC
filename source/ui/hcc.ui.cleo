@@ -130,6 +130,34 @@
       :color color}]))
 
 
+(defmethod render-elem :bottom-left-swept
+  [palette
+   [type {[width height] :extents
+          :keys [origin inner-radius color]}]
+   state]
+  (let [color (palette color)]
+    [{:type :arc
+      :origin origin
+      :extents [height height]
+      :radius height
+      :center [height height]
+      :color color}
+     {:type :rect
+      :origin (v2+ origin [height 0])
+      :extents [(- width (+ height inner-radius)) height]
+      :color color}
+     {:type :rect
+      :origin (v2+ origin [(- width inner-radius) 0])
+      :extents [inner-radius (- height inner-radius)]
+      :color color}
+     {:type :arc
+      :origin (v2+ origin [(- width inner-radius) (- height inner-radius)])
+      :extents [inner-radius inner-radius]
+      :radius (- inner-radius)
+      :center [inner-radius inner-radius]
+      :color color}]))
+
+
 (defmethod render-elem :image
   [palette [type {:keys [origin image anchor vanchor]}] state]
   [{:type :image

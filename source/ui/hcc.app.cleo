@@ -11,6 +11,7 @@
 (def fonts
   [{:name :big :path font-path :size 27}
    {:name :title :path font-path :size 40}
+   {:name :medium :path font-path :size 21}
    {:name :small :path font-path :size 12}
    {:name :tiny :path font-path :size 9}])
 
@@ -219,6 +220,261 @@
             :primitives [{:type :rect
                           :extents [120 100]}]}]])
 
+(def left-bar-width 100)
+(def top-bar-height 40)
+
+
+(defn replicate-labels-left [attrs & numbers]
+  (persistent! (reduce (fn [labels n]
+                         (let [[x y] (-> (or (second (peek labels)) attrs) :origin)
+                               width (-> attrs :extents (get 0))]
+                           (conj! labels
+                                  [:label (merge attrs {:text n
+                                                        :origin [(- x width) y]})])))
+                       (transient [])
+                       numbers)))
+
+
+(def demo-ui
+  (concati
+   [[:button {:id "32495-12"
+              :text "32495-12"
+              :font :tiny
+              :origin [0 440]
+              :extents [left-bar-width 40]
+              :margin 4
+              :color :primary
+              :text-color :text
+              :text-align :right
+              :text-valign :baseline}]
+    [:button {:id "24567-24"
+              :text "24567-24"
+              :font :tiny
+              :origin [0 378]
+              :extents [left-bar-width 60]
+              :margin 4
+              :color :secondary
+              :text-color :text
+              :text-align :right
+              :text-valign :top}]
+    [:bottom-left-swept {:origin [0 348]
+                         :extents [(+ left-bar-width 20) 30]
+                         :inner-radius 20
+                         :color :secondary}]
+    [:top-left-swept {:origin [0 312]
+                      :extents [(+ left-bar-width 20) 30]
+                      :inner-radius 20
+                      :color :secondary}]
+    [:shape {:origin [(+ left-bar-width 20) 348]
+             :color :secondary
+             :primitives [{:type :rect
+                           :origin [0 0]
+                           :extents [30 10] }
+                          {:type :rect
+                           :origin [0 -16]
+                           :extents [30 10] }
+                          {:type :rect
+                           :origin [34 0]
+                           :extents [150 10]}
+                          {:type :rect
+                           :origin [34 -16]
+                           :extents [150 10]}
+                          {:type :rect
+                           :origin [187 0]
+                           :extents [17 10]}
+                          {:type :rect
+                           :origin [187 -16]
+                           :extents [17 10]}
+                          {:type :rect
+                           :origin [209 -16]
+                           :extents [70 5]}
+                          {:type :rect
+                           :origin [209 5]
+                           :extents [70 5]}
+                          {:type :rect
+                           :origin [209 -8]
+                           :extents [12 10]}
+                          {:type :rect
+                           :origin [279 0]
+                           :extents [(- 800 (+ (+ left-bar-width 20) 279)) 10]}
+                          {:type :rect
+                           :origin [279 -16]
+                           :extents [(- 800 (+ (+ left-bar-width 20) 279)) 10]}]}]
+    [:button {:id "98272-31"
+              :text "98272-31"
+              :font :tiny
+              :origin [0 178]
+              :extents [left-bar-width 134]
+              :margin 4
+              :color :secondary
+              :text-color :text
+              :text-align :right
+              :text-valign :baseline}]
+    [:button {:id "27463-38"
+              :text "27463-38"
+              :font :tiny
+              :origin [0 136]
+              :extents [left-bar-width 40]
+              :margin 4
+              :color :secondary
+              :text-color :text
+              :text-align :right
+              :text-valign :baseline
+              :on-click (fn [state] (assoc state ::ui/root main-ui ::ui/palette main-palette))}]
+    [:button {:id "63427-34"
+              :text "63427-34"
+              :font :tiny
+              :origin [0 0]
+              :extents [left-bar-width 134]
+              :margin 4
+              :color :secondary
+              :text-color :text
+              :text-align :right
+              :text-valign :top}]
+    [:label {:text "COMMAND CODES 43.2"
+             :font :medium
+             :origin [(+ left-bar-width 50) 285]
+             :extents [400 30]
+             :margin 2
+             :text-color :tertiary
+             :text-align :left
+             :text-valign :top}]
+    [:label {:text "9278536Y FB238457 GB234957 6N3457N3 4MKFRT35 87UHBTNS87EW4 FQW37865NG8 Q734TVN39085T0V29"
+             :font :small
+             :origin [(+ left-bar-width 50) 235]
+             :extents [400 30]
+             :margin 2
+             :text-color :primary
+             :text-align :left
+             :text-valign :top}]
+    [:label {:text "2358976VT238456VN20389 7546VN39 4562Q87T98RF7S Y34W95GQ039 847 65NQG08234756TNG0Q38476T5"
+             :font :small
+             :origin [(+ left-bar-width 50) 210]
+             :extents [400 30]
+             :margin 2
+             :text-color :primary
+             :text-align :left
+             :text-valign :top}]
+    [:label {:text "AW 498 5R QG30C24526QO GH9465YQV34P 9T2QPVN3495T6WQ9A N38756VNQ3478 56YBWN934 5TYBWN9387"
+             :font :small
+             :origin [(+ left-bar-width 50) 185]
+             :extents [400 30]
+             :margin 2
+             :text-color :primary
+             :text-align :left
+             :text-valign :top}]
+    [:label {:text "3489756TYG2385T2 3856TY3458YTGW VBN893  7456TY 02NV37456YN20 VB3784965YGN028946Y5GN01234"
+             :font :small
+             :origin [(+ left-bar-width 50) 160]
+             :extents [400 30]
+             :margin 2
+             :text-color :primary
+             :text-align :left
+             :text-valign :top}]
+    [:label {:text "89473 56FY20J37956702G9367J2 468723Y8Y20934586GH29 834576NH298357N61B83745NG1934 756GN39"
+             :font :small
+             :origin [(+ left-bar-width 50) 135]
+             :extents [400 30]
+             :margin 2
+             :text-color :primary
+             :text-align :left
+             :text-valign :top}]
+    [:label {:text "23458F5TH239 485TF123 48GB525189G345912VBQN04 56Y138456TF10982 34675TB01F782465G12837465"
+             :font :small
+             :origin [(+ left-bar-width 50) 110]
+             :extents [400 30]
+             :margin 2
+             :text-color :primary
+             :text-align :left
+             :text-valign :top}]
+    [:label {:text "SECURITY SCAN ANALYSIS 43.267"
+             :font :medium
+             :origin [400 450]
+             :extents [400 30]
+             :margin 2
+             :text-color :tertiary
+             :text-align :right
+             :text-valign :top}]
+    [:shape {:origin [360 423]
+             :color :tertiary
+             :primitives [{:type :arc
+                           :origin [0 0]
+                           :extents [16 12]
+                           :center [8 6]
+                           :vaxis 8
+                           :haxis 6}
+                          {:type :arc
+                           :origin [0 -18]
+                           :extents [16 12]
+                           :center [8 6]
+                           :vaxis 8
+                           :haxis 6}
+                          {:type :arc
+                           :origin [0 -36]
+                           :extents [16 12]
+                           :center [8 6]
+                           :vaxis 8
+                           :haxis 6}
+                          {:type :arc
+                           :origin [0 -54]
+                           :extents [16 12]
+                           :center [8 6]
+                           :vaxis 8
+                           :haxis 6}]}]
+    [:label {:text "SIGNAL RECEIVE"
+             :font :tiny
+             :text-color :tertiary
+             :origin [250 422]
+             :extents [150 18]}]
+    [:label {:text "ACTIVE FREQUENCY"
+             :font :tiny
+             :text-color :quateriary
+             :origin [250 404]
+             :extents [150 18]}]
+    [:label {:text "PASSIVE FREQUENCY"
+             :font :tiny
+             :text-color :tertiary
+             :origin [250 386]
+             :extents [150 18]}]
+    [:label {:text "SIGNAL DECAY"
+             :font :tiny
+             :text-color :quateriary
+             :origin [250 368]
+             :extents [150 18]}]]
+   (replicate-labels-left {:font :tiny
+                           :origin [760 422]
+                           :extents [30 18]
+                           :margin 1
+                           :text-color :tertiary
+                           :text-align :right
+                           :text-valign :baseline}
+                          "2457" "2345" "7345" "7324" "5656" "3746" "5546" "9074" "5832" "6573" "4924" "3837")
+   (replicate-labels-left {:font :tiny
+                           :origin [760 404]
+                           :extents [30 18]
+                           :margin 1
+                           :text-color :quateriary
+                           :text-align :right
+                           :text-valign :baseline}
+                          "8638" "8236" "3948" "5385" "7489" "7893" "6523" "6912" "5402" "3479" "2396" "7589")
+   (replicate-labels-left {:font :tiny
+                           :origin [760 386]
+                           :extents [30 18]
+                           :margin 1
+                           :text-color :tertiary
+                           :text-align :right
+                           :text-valign :baseline}
+                          "9451" "4523" "4564" "3786" "9032" "6234" "6737" "9083" "6867" "3498" "5294" "5692")
+   (replicate-labels-left {:font :tiny
+                           :origin [760 368]
+                           :extents [30 18]
+                           :margin 1
+                           :text-color :quateriary
+                           :text-align :right
+                           :text-valign :baseline}
+                          "4435" "6567" "3489" "0366" "7891" "4572" "4580" "2556" "7824" "5897" "3458" "3795")))
+
+
 (def security-palette
   {:primary [74 149 221]
    :secondary [255 100 72]
@@ -243,8 +499,8 @@
 (defn enter-code [state]
   (assoc state
          :code ""
-         ::ui/root main-ui
-         ::ui/palette main-palette))
+         ::ui/root demo-ui
+         ::ui/palette security-palette))
 
 
 (defn digit-button [id text origin on-click]
@@ -454,6 +710,7 @@
 
 
 (defn main []
+  ;; RPI pixel ratio ~1.074
   (ui/initialize! 1)
   (swap! app-state merge {::ui/root login-ui, ::ui/palette security-palette})
   (main-loop-for! 1)
