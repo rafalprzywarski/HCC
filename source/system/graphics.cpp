@@ -20,14 +20,6 @@
 #include <png.h>
 #include <cstring>
 
-extern "C"
-{
-
-std::int64_t get_display_width();
-std::int64_t get_display_height();
-
-}
-
 namespace
 {
 
@@ -281,11 +273,11 @@ struct State
 {
 #ifndef __APPLE__
     EGLDisplay display{};
-    std::uint32_t display_width{}, display_height{};
     EGLSurface surface{};
     EGL_DISPMANX_WINDOW_T window{};
 #endif // __APPLE__
     int display_scale = 2;
+    std::uint32_t display_width{}, display_height{};
 
     FT_Library freetype;
 
@@ -372,7 +364,7 @@ std::pair<GLuint, GLuint> create_framebuffer(GLenum format)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, get_display_width() * state->display_scale, get_display_height() * state->display_scale, 0, format, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, state->display_width * state->display_scale, state->display_height * state->display_scale, 0, format, GL_UNSIGNED_BYTE, nullptr);
 
     GLuint fbo;
     glGenFramebuffers(1, &fbo);
@@ -619,7 +611,6 @@ std::int64_t text_width(const Font& font, const char *text)
 extern "C"
 {
 
-#ifndef __APPLE__
 std::int64_t get_display_width()
 {
     if (!state)
@@ -633,12 +624,12 @@ std::int64_t get_display_height()
         return 0;
     return state->display_height;
 }
-#endif // __APPLE__
 
-std::int64_t initialize_graphics(std::int64_t scale)
+std::int64_t initialize_graphics(std::int64_t display_width, std::int64_t display_height, std::int64_t scale)
 {
     std::unique_ptr<State> state{new State};
     state->display_scale = scale;
+
 #ifndef __APPLE__
     bcm_host_init();
 
@@ -669,6 +660,9 @@ std::int64_t initialize_graphics(std::int64_t scale)
     state->surface = eglCreateWindowSurface(state->display, config, &state->window, NULL);
     eglMakeCurrent(state->display, state->surface, state->surface, context);
     eglSwapInterval(state->display, 1);
+#else
+    state->display_width = display_width;
+    state->display_height = display_height;
 #endif // __APPLE__
     ::state = state.release();
 
@@ -677,7 +671,7 @@ std::int64_t initialize_graphics(std::int64_t scale)
     init_shaders();
     init_buffers();
     init_framebuffers();
-    init_projection(get_display_width() * ::state->display_scale, get_display_height() * ::state->display_scale);
+    init_projection(::state->display_width * ::state->display_scale, ::state->display_height * ::state->display_scale);
 
     FT_Init_FreeType(&::state->freetype);
 
@@ -977,7 +971,6 @@ std::int64_t render()
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
 
-    std::array<GLfloat, 2> screen_size{{GLfloat(get_display_width() * state->display_scale), GLfloat(get_display_height() * state->display_scale)}};
     glBindFramebuffer(GL_FRAMEBUFFER, state->arc_fbo);
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -1027,6 +1020,7 @@ std::int64_t render()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_BLEND);
 
+    std::array<GLfloat, 2> screen_size{{GLfloat(state->display_width * state->display_scale), GLfloat(state->display_height * state->display_scale)}};
     std::array<GLfloat, 12> screen_vertices{{0, 0, screen_size[0], 0, screen_size[0], screen_size[1], 0, 0, screen_size[0], screen_size[1], 0, screen_size[1]}};
     set_buffer(state->combine_vertex_buffer, screen_vertices);
     glUseProgram(state->combine_program);

@@ -382,8 +382,8 @@
   (println "loaded" (count @images) "images"))
 
 
-(defn initialize! [scale]
-  (si/initialize! scale)
+(defn initialize! [width height scale]
+  (si/initialize! width height scale)
   (println "initialized display" (si/get-display-width) "x" (si/get-display-height)))
 
 

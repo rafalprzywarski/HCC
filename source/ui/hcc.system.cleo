@@ -10,7 +10,7 @@
 
 
 (defcfns "Release/source/system/libhcc_system.so"
-  (initialize! "initialize" :int64 [:int64])
+  (initialize! "initialize" :int64 [:int64 :int64 :int64])
   (shutdown! "shutdown" :int64 [])
   (background-color! "background_color" :int64 [:int64 :int64 :int64])
   (clear! "clear" :int64 [])

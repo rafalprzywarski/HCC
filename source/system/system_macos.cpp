@@ -6,9 +6,6 @@
 namespace
 {
 
-constexpr int DISPLAY_WIDTH = 800;
-constexpr int DISPLAY_HEIGHT = 480;
-
 struct Event
 {
     std::int64_t type{}, x{}, y{};
@@ -34,22 +31,22 @@ State *state = nullptr;
 extern "C"
 {
 
-std::int64_t initialize_graphics(std::int64_t scale);
+std::int64_t initialize_graphics(std::int64_t display_width, std::int64_t display_height, std::int64_t scale);
 std::int64_t shutdown_graphics();
 
-std::int64_t initialize(std::int64_t scale)
+std::int64_t initialize(std::int64_t display_width, std::int64_t display_height, std::int64_t scale)
 {
     std::unique_ptr<State> state{new State};
     state->display_scale = (scale < 1) ? 1 : ((scale > 3) ? 3 : scale);
 
     sf::ContextSettings settings;
-    state->window.reset(new sf::RenderWindow(sf::VideoMode(DISPLAY_WIDTH * state->display_scale, DISPLAY_HEIGHT * state->display_scale), "hcc", sf::Style::Titlebar | sf::Style::Close, settings));
+    state->window.reset(new sf::RenderWindow(sf::VideoMode(display_width * state->display_scale, display_height * state->display_scale), "hcc", sf::Style::Titlebar | sf::Style::Close, settings));
     state->window->setVerticalSyncEnabled(true);
 
     ::state = state.release();
 
     ::state->window->setActive();
-    initialize_graphics(::state->display_scale);
+    initialize_graphics(display_width, display_height, ::state->display_scale);
     return 0;
 }
 
@@ -65,10 +62,10 @@ std::int64_t shutdown()
 
 std::int64_t clear()
 {
-    state->window->setActive();
-    state->window->clear();
     if (!state)
         return 0;
+    state->window->setActive();
+    state->window->clear();
     return 0;
 }
 
@@ -76,16 +73,6 @@ std::int64_t swap_buffers()
 {
     state->window->display();
     return 0;
-}
-
-std::int64_t get_display_width()
-{
-    return DISPLAY_WIDTH;
-}
-
-std::int64_t get_display_height()
-{
-    return DISPLAY_HEIGHT;
 }
 
 std::int64_t has_input()

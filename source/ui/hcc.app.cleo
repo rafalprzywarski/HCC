@@ -711,7 +711,7 @@
 
 (defn main []
   ;; RPI pixel ratio ~1.074
-  (ui/initialize! 1)
+  (ui/initialize! 800 480 1)
   (swap! app-state merge {::ui/root login-ui, ::ui/palette security-palette})
   (main-loop-for! 1)
   (ui/load-images! images)

@@ -3,14 +3,14 @@
 extern "C"
 {
 
-std::int64_t initialize_graphics(std::int64_t display_scale);
+std::int64_t initialize_graphics(std::int64_t display_width, std::int64_t display_height, std::int64_t display_scale);
 std::int64_t shutdown_graphics();
 std::int64_t initialize_input();
 std::int64_t shutdown_input();
 
-std::int64_t initialize(std::int64_t display_scale)
+std::int64_t initialize(std::int64_t display_width, std::int64_t display_height, std::int64_t display_scale)
 {
-    initialize_graphics(display_scale);
+    initialize_graphics(display_width, display_height, display_scale);
     initialize_input();
     return 0;
 }
