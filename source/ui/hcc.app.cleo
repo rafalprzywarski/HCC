@@ -507,7 +507,7 @@
            ::ui/palette security-palette)
     (assoc state
            :code ""
-           :access :denied
+           :access-denied-at (get-time)
            ::ui/root login-ui
            ::ui/palette security-palette)))
 
@@ -622,14 +622,21 @@
             :color :text}]])
 
 
-(ui/defc access-state [{:keys [access]}]
-  [[:label {:text (if (= access :denied) "ACCESS DENIED" "AUTHORIZATION REQUIRED")
+(ui/defc access-control [{:keys [access-denied-at]}]
+  [[:label {:text (if access-denied-at "ACCESS DENIED" "AUTHORIZATION REQUIRED")
              :font :big
              :origin [100 65]
              :extents [600 40]
-             :text-color (if (= access :denied) :error :tertiary)
+             :text-color (if access-denied-at :error :tertiary)
              :text-align :center
-             :text-valign :baseline}]])
+            :text-valign :baseline}]
+   (when (not access-denied-at)
+     [:button {:id :login
+               :origin [0 50]
+               :extents [800 380]
+               :on-click (fn [state] (assoc state
+                                            ::ui/root security-ui
+                                            ::ui/palette security-palette))}])])
 
 
 (def login-ui
@@ -681,12 +688,6 @@
             :image :ufp
             :anchor :center
             :vanchor :center}]
-   [:button {:id :login
-             :origin [0 50]
-             :extents [800 380]
-             :on-click (fn [state] (assoc state
-                                          ::ui/root security-ui
-                                          ::ui/palette security-palette))}]
    [:label {:text "CONSOLE ACCESS"
             :font :big
             :origin [535 440]
@@ -702,7 +703,7 @@
             :text-color :primary
             :text-align :center
             :text-valign :baseline}]
-   [access-state]])
+   [access-control]])
 
 
 (defmacro time [expr]
@@ -711,9 +712,15 @@
      (- (get-time) start#)))
 
 
+(defn update-access-denial [{:keys [access-denied-at] :as state}]
+  (if (and access-denied-at (< (+ access-denied-at 4000000) (get-time)))
+    (dissoc state :access-denied-at)
+    state))
+
 (defn main-loop-for! [n]
   (let [t (time (dotimes [i n]
                   (let [events (ui/get-input-events!)]
+                    (swap! app-state update-access-denial)
                     (swap! app-state ui/step events)
                     (ui/render! @app-state))))]
     (println (quot t n) "ns per frame")))
@@ -727,5 +734,5 @@
   (ui/load-images! images)
   (main-loop-for! 1)
   (ui/load-fonts! fonts)
-  (main-loop-for! 847)
+  (main-loop-for! 1000)
   (ui/shutdown!))

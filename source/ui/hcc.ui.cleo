@@ -349,7 +349,8 @@
 
 
 (defn step [app-state events]
-  (let [app-state
+  (let [app-state (dissoc app-state ::primitives)
+        app-state
         (reduce (fn [app-state event]
                   (render (if-let [elems (::elems app-state)]
                             (handle-event app-state elems event)
