@@ -482,7 +482,7 @@
    :quateriary [65 229 121]
    :highlight [255 255 255]
    :text [0 0 0]
-   :transparent [0 0 0 0]})
+   :error [255 0 0]})
 
 
 (defn enter-digit [n]
@@ -496,11 +496,20 @@
   (assoc state :code ""))
 
 
+(def login-ui)
+
+
 (defn enter-code [state]
-  (assoc state
-         :code ""
-         ::ui/root demo-ui
-         ::ui/palette security-palette))
+  (if (= (:code state) "123")
+    (assoc state
+           :code ""
+           ::ui/root demo-ui
+           ::ui/palette security-palette)
+    (assoc state
+           :code ""
+           :access :denied
+           ::ui/root login-ui
+           ::ui/palette security-palette)))
 
 
 (defn digit-button [id text origin on-click]
@@ -612,6 +621,17 @@
             :text-valign :baseline
             :color :text}]])
 
+
+(ui/defc access-state [{:keys [access]}]
+  [[:label {:text (if (= access :denied) "ACCESS DENIED" "AUTHORIZATION REQUIRED")
+             :font :big
+             :origin [100 65]
+             :extents [600 40]
+             :text-color (if (= access :denied) :error :tertiary)
+             :text-align :center
+             :text-valign :baseline}]])
+
+
 (def login-ui
   [[:shape {:origin [0 440]
             :color :tertiary
@@ -682,13 +702,7 @@
             :text-color :primary
             :text-align :center
             :text-valign :baseline}]
-   [:label {:text "AUTHORIZATION REQUIRED"
-            :font :big
-            :origin [100 65]
-            :extents [600 40]
-            :text-color :tertiary
-            :text-align :center
-            :text-valign :baseline}]])
+   [access-state]])
 
 
 (defmacro time [expr]
