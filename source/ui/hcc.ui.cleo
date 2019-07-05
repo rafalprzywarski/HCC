@@ -62,44 +62,49 @@
    [type {[width height] :extents
           :keys [id origin extents vaxis color font text text-color text-align text-valign margin button-style]}]
    {pressed-id ::pressed-id}]
-  (let [color (if (and id (= id pressed-id)) :highlight color)
+  (let [color (if (and color id (= id pressed-id)) :highlight color)
         color (palette color)
         text-color (palette text-color)]
     (if (= button-style :rounded)
       (let [radius (quot height 2)
             vaxis (or vaxis radius)]
-        [{:type :arc
-          :origin origin
-          :extents [vaxis height]
-          :vaxis vaxis
-          :haxis radius
-          :center [vaxis radius]
-          :color color}
-         {:type :arc
-          :origin (v2+ origin [(- width vaxis) 0])
-          :extents [vaxis height]
-          :vaxis vaxis
-          :haxis radius
-          :center [0 radius]
-          :color color}
+        (conj (if color
+                [{:type :arc
+                  :origin origin
+                  :extents [vaxis height]
+                  :vaxis vaxis
+                  :haxis radius
+                  :center [vaxis radius]
+                  :color color}
+                 {:type :arc
+                  :origin (v2+ origin [(- width vaxis) 0])
+                  :extents [vaxis height]
+                  :vaxis vaxis
+                  :haxis radius
+                  :center [0 radius]
+                  :color color}
+                 {:type :rect
+                  :origin (v2+ origin [vaxis 0])
+                  :extents (v2+ extents [(* -2 vaxis) 0])
+                  :color color}]
+                [])
+              (when text
+                (assoc (align-text text text-align text-valign margin (v2+ origin [vaxis 0]) (v2+ extents [(* -2 vaxis) 0]))
+                       :type :text
+                       :font font
+                       :text text
+                       :text-color text-color))))
+      [(when color
          {:type :rect
-          :origin (v2+ origin [vaxis 0])
-          :extents (v2+ extents [(* -2 vaxis) 0])
-          :color color}
-         (merge {:type :text
-                 :font font
-                 :text text
-                 :text-color text-color}
-                (align-text text text-align text-valign margin (v2+ origin [vaxis 0]) (v2+ extents [(* -2 vaxis) 0])))])
-      [{:type :rect
-        :origin origin
-        :extents extents
-        :color color}
-       (merge {:type :text
-               :font font
-               :text text
-               :text-color text-color}
-              (align-text text text-align text-valign margin origin extents))])))
+          :origin origin
+          :extents extents
+          :color color})
+       (when text
+         (assoc (align-text text text-align text-valign margin origin extents)
+                :type :text
+                :font font
+                :text text
+                :text-color text-color))])))
 
 
 (defmethod render-elem :top-left-swept

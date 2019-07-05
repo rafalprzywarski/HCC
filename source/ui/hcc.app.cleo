@@ -662,12 +662,8 @@
             :anchor :center
             :vanchor :center}]
    [:button {:id :login
-             :font :big
-             :text ""
              :origin [0 50]
              :extents [800 380]
-             :color :transparent
-             :text-color :text
              :on-click (fn [state] (assoc state
                                           ::ui/root security-ui
                                           ::ui/palette security-palette))}]
