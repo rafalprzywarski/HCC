@@ -1,0 +1,40 @@
+(ns hcc.edit)
+(require 'hcc.app)
+(require 'hcc.ui)
+(alias 'ui 'hcc.ui)
+
+
+(def app-state (atom {}))
+
+
+(defn get-ui-var [] (->> (get *command-line-args* 0) (symbol "hcc.app") resolve))
+(defn get-ui-palette-var [] (->> (get *command-line-args* 1) (symbol "hcc.app") resolve))
+
+
+(defn maybe-reload-app! []
+  (let [ts (hcc.system/file-timestamp "source/ui/hcc.app.cleo")]
+    (when (not= ts (::timestamp @app-state))
+      (require 'hcc.app :reload)
+      (swap! app-state merge {::ui/root @(get-ui-var)
+                              ::ui/palette @(get-ui-palette-var)
+                              ::timestamp ts}))))
+
+
+(defn main-loop-forever! []
+  (loop [events (ui/get-input-events!)]
+    (maybe-reload-app!)
+    (swap! app-state ui/step events)
+    (ui/render! @app-state)
+    (recur (ui/get-input-events!))))
+
+
+(defn main []
+  (cond
+    (not= (count *command-line-args*) 2) (println "usage: cleo source/ui hcc.edit <ui-name> <palette-name>")
+    (not (get-ui-var)) (println "cannot resolve ui")
+    (not (get-ui-palette-var)) (println "cannot resolve palette")
+    :ok (do
+          (ui/initialize! 800 480 1)
+          (ui/load-images! hcc.app/images)
+          (ui/load-fonts! hcc.app/fonts)
+          (main-loop-forever!))))

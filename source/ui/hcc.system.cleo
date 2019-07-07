@@ -28,7 +28,8 @@
   (pop-event! "pop_event" :int64 [])
   (get-event-type "get_event_type" :int64 [])
   (get-event-x "get_event_x" :int64 [])
-  (get-event-y "get_event_y" :int64 []))
+  (get-event-y "get_event_y" :int64 [])
+  (file-timestamp "file_timestamp" :int64 [:string]))
 
 
 (defn has-input? []

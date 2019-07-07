@@ -1,3 +1,6 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <cstdint>
 #include <memory>
 #include <SFML/Window.hpp>
@@ -138,6 +141,14 @@ std::int64_t get_event_y()
     if (!has_input())
         return -1;
     return state->event.y;
+}
+
+std::int64_t file_timestamp(const char *path)
+{
+    struct stat s;
+    if (stat(path, &s))
+        return 0;
+    return s.st_mtime;
 }
 
 }

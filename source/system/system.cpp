@@ -1,3 +1,6 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <cstdint>
 
 extern "C"
@@ -20,6 +23,14 @@ std::int64_t shutdown()
     shutdown_input();
     shutdown_graphics();
     return 0;
+}
+
+std::int64_t file_timestamp(const char *path)
+{
+    struct stat s;
+    if (stat(path, &s))
+        return 0;
+    return s.st_mtime;
 }
 
 }
