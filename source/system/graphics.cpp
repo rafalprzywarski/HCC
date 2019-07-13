@@ -253,7 +253,7 @@ struct RasterizedFont
 struct Font
 {
     int precision{};
-    int ascender{}, descender{}, center{}, baseline_center{};
+    int ascender{}, descender{}, height{}, center{}, baseline_center{};
     int texture_width{}, texture_height{};
     GLuint texture;
     std::unordered_map<char, std::unordered_map<char, int>> kerning;
@@ -581,6 +581,7 @@ Font generate_font(FT_Face face, const std::string& chars, unsigned precision)
 
     f.ascender = (ascender + (32 * rf.precision - 1)) / (64 * rf.precision);
     f.descender = -(FT_MulFix(-face->descender, face->size->metrics.y_scale) + (32 * rf.precision - 1)) / (64 * rf.precision);
+    f.height = f.ascender - f.descender;
     f.center = (ascender - FT_MulFix(-face->descender, face->size->metrics.y_scale) + (64 * rf.precision - 1)) / (2 * 64 * rf.precision);
     f.baseline_center = (ascender + (64 * rf.precision - 1)) / (2 * 64 * rf.precision);
     f.texture_width = rf.image.width;
@@ -591,11 +592,11 @@ Font generate_font(FT_Face face, const std::string& chars, unsigned precision)
     return f;
 }
 
-std::int64_t text_width(const Font& font, const char *text)
+std::int64_t text_line_width(const Font& font, const char *text)
 {
     int width = 0;
     char prev_ch = 0;
-    for (auto p = text; *p; ++p)
+    for (auto p = text; *p && *p != '\n'; ++p)
     {
         auto ch = *p;
         if (prev_ch)
@@ -604,6 +605,15 @@ std::int64_t text_width(const Font& font, const char *text)
         prev_ch = ch;
     }
     return width;
+}
+
+std::int64_t newline_count(const char *text)
+{
+    int n = 0;
+    for (auto p = text; *p; ++p)
+        if (*p == '\n')
+            ++n;
+    return n;
 }
 
 }
@@ -773,26 +783,39 @@ std::int64_t text(
 {
     x *= state->display_scale; y *= state->display_scale;
     auto& font = ::state->fonts.at(font_id);
+    auto calc_pen_x = [&](const char *text)
+                          {
+                              auto xp = x * font.precision;
+                              if (anchor > 0)
+                                  return xp - text_line_width(font, text);
+                              else if (anchor == 0)
+                                  return xp - text_line_width(font, text) / 2;
+                              return xp;
+                          };
     auto array_offset = ::state->font_vertices.size() / 2;
-    auto pen_x = x * font.precision;
-    if (anchor > 0)
-        pen_x -= text_width(font, text);
-    else if (anchor == 0)
-        pen_x -= text_width(font, text) / 2;
+    auto pen_x = calc_pen_x(text);
 
     switch (vanchor)
     {
-    case VA_BOTTOM: y -= font.descender; break;
-    case VA_CENTER: y -= font.center; break;
-    case VA_BASELINE_CENTER: y -= font.baseline_center; break;
+    case VA_BOTTOM: y += newline_count(text) * font.height  - font.descender; break;
+    case VA_CENTER: y += newline_count(text) * font.height / 2 - font.center; break;
+    case VA_BASELINE_CENTER: y += newline_count(text) * font.height / 2 - font.baseline_center; break;
     case VA_TOP: y -= font.ascender; break;
-    case VA_BASELINE:
+    case VA_BASELINE: y += newline_count(text) * font.height;
     default:;
     }
 
     char prev_ch = 0;
-    for (char ch : std::string(text))
+    for (; *text; ++text)
     {
+        auto ch = *text;
+        if (ch == '\n')
+        {
+            prev_ch = 0;
+            pen_x = calc_pen_x(text + 1);
+            y -= font.height;
+            continue;
+        }
         if (prev_ch)
             pen_x += font.kerning.at(prev_ch).at(ch);
 

@@ -220,6 +220,147 @@
             :primitives [{:type :rect
                           :extents [120 100]}]}]])
 
+
+(def text-ui
+  [[:label {:font :tiny
+            :text "LEFT-BOTTOM\nwith\n\nmultiple lines"
+            :origin [9 101]
+            :extents [260 90]
+            :text-color :black
+            :text-align :left
+            :text-valign :bottom
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "LEFT-BASELINE\nwith\n\nmultiple lines"
+            :origin [9 10]
+            :extents [260 90]
+            :text-color :black
+            :text-align :left
+            :text-valign :baseline
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "LEFT-BASELINE-CENTER\nwith\n\nmultiple lines"
+            :origin [9 192]
+            :extents [260 90]
+            :text-color :black
+            :text-align :left
+            :text-valign :baseline-center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "LEFT-CENTER\nwith\n\nmultiple lines"
+            :origin [9 283]
+            :extents [260 90]
+            :text-color :black
+            :text-align :left
+            :text-valign :center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "LEFT-TOP\nwith\n\nmultiple lines"
+            :origin [9 374]
+            :extents [260 90]
+            :text-color :black
+            :text-align :left
+            :text-valign :top
+            :margin 2
+            :color :secondary}]
+
+   [:label {:font :tiny
+            :text "CENTER-BOTTOM\nwith\n\nmultiple lines"
+            :origin [270 101]
+            :extents [260 90]
+            :text-color :black
+            :text-align :center
+            :text-valign :bottom
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "CENTER-BASELINE\nwith\n\nmultiple lines"
+            :origin [270 10]
+            :extents [260 90]
+            :text-color :black
+            :text-align :center
+            :text-valign :baseline
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "CENTER-BASELINE-CENTER\nwith\n\nmultiple lines"
+            :origin [270 192]
+            :extents [260 90]
+            :text-color :black
+            :text-align :center
+            :text-valign :baseline-center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "CENTER-CENTER\nwith\n\nmultiple lines"
+            :origin [270 283]
+            :extents [260 90]
+            :text-color :black
+            :text-align :center
+            :text-valign :center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "CENTER-TOP\nwith\n\nmultiple lines"
+            :origin [270 374]
+            :extents [260 90]
+            :text-color :black
+            :text-align :center
+            :text-valign :top
+            :margin 2
+            :color :secondary}]
+
+   [:label {:font :tiny
+            :text "RIGHT-BOTTOM\nwith\n\nmultiple lines"
+            :origin [531 101]
+            :extents [260 90]
+            :text-color :black
+            :text-align :right
+            :text-valign :bottom
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "RIGHT-BASELINE\nwith\n\nmultiple lines"
+            :origin [531 10]
+            :extents [260 90]
+            :text-color :black
+            :text-align :right
+            :text-valign :baseline
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "RIGHT-BASELINE-CENTER\nwith\n\nmultiple lines"
+            :origin [531 192]
+            :extents [260 90]
+            :text-color :black
+            :text-align :right
+            :text-valign :baseline-center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "RIGHT-CENTER\nwith\n\nmultiple lines"
+            :origin [531 283]
+            :extents [260 90]
+            :text-color :black
+            :text-align :right
+            :text-valign :center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "RIGHT-TOP\nwith\n\nmultiple lines"
+            :origin [531 374]
+            :extents [260 90]
+            :text-color :black
+            :text-align :right
+            :text-valign :top
+            :margin 2
+            :color :secondary}]])
+
+
 (def left-bar-width 100)
 (def top-bar-height 40)
 
