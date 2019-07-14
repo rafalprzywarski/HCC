@@ -778,19 +778,20 @@ std::int64_t load_font(const char *filename, std::int64_t size)
 std::int64_t text(
     std::int64_t font_id, const char *text,
     std::int64_t x, std::int64_t y,
+    std::int64_t width, std::int64_t height,
     std::int64_t anchor, std::int64_t vanchor,
     std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a)
 {
     x *= state->display_scale; y *= state->display_scale;
+    width *= state->display_scale; height *= state->display_scale;
     auto& font = ::state->fonts.at(font_id);
     auto calc_pen_x = [&](const char *text)
                           {
-                              auto xp = x * font.precision;
                               if (anchor > 0)
-                                  return xp - text_line_width(font, text);
+                                  return (x + width) * font.precision - text_line_width(font, text);
                               else if (anchor == 0)
-                                  return xp - text_line_width(font, text) / 2;
-                              return xp;
+                                  return (x + width / 2) * font.precision - text_line_width(font, text) / 2;
+                              return x * font.precision;
                           };
     auto array_offset = ::state->font_vertices.size() / 2;
     auto pen_x = calc_pen_x(text);
@@ -798,9 +799,9 @@ std::int64_t text(
     switch (vanchor)
     {
     case VA_BOTTOM: y += newline_count(text) * font.height  - font.descender; break;
-    case VA_CENTER: y += newline_count(text) * font.height / 2 - font.center; break;
-    case VA_BASELINE_CENTER: y += newline_count(text) * font.height / 2 - font.baseline_center; break;
-    case VA_TOP: y -= font.ascender; break;
+    case VA_CENTER: y += height / 2 + newline_count(text) * font.height / 2 - font.center; break;
+    case VA_BASELINE_CENTER: y += height / 2 + newline_count(text) * font.height / 2 - font.baseline_center; break;
+    case VA_TOP: y += height - font.ascender; break;
     case VA_BASELINE: y += newline_count(text) * font.height;
     default:;
     }

@@ -11,18 +11,11 @@
 
 
 (defn align-text [text align valign margin [origin-x origin-y] [width height]]
-  (let [margin (or margin 0)
-        origin-x (cond
-                   (= align :center) (+ origin-x (quot width 2))
-                   (= align :right) (- (+ origin-x width) margin)
-                   :else (+ origin-x margin))
-        origin-y (cond
-                   (or (= valign :center) (= valign :baseline-center)) (+ origin-y (quot height 2))
-                   (= valign :top) (- (+ origin-y height) margin)
-                   :else (+ origin-y margin))]
+  (let [margin (or margin 0)]
     {:text-anchor (#{:center :right} align :left)
      :text-vanchor (#{:bottom :center :baseline-center :top} valign :baseline)
-     :origin [origin-x origin-y]}))
+     :origin [(+ origin-x margin) (+ origin-y margin)]
+     :extents [(- width (* 2 margin)) (- height (* 2 margin))]}))
 
 
 (defmulti render-elem (fn [palette elem state] (first elem)))
@@ -205,12 +198,14 @@
 
 (defmethod render-primitive! :text
   [{[origin-x origin-y] :origin
+    [width height] :extents
     [tr tg tb ta] :text-color
     :keys [font text text-anchor text-vanchor]}]
   (if @fonts
     (si/text! (@fonts font)
               text
               origin-x origin-y
+              width height
               ({:center 0, :right 1} text-anchor -1) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-vanchor 0)
               tr tg tb (or ta 255))))
 
