@@ -592,28 +592,79 @@ Font generate_font(FT_Face face, const std::string& chars, unsigned precision)
     return f;
 }
 
-std::int64_t text_line_width(const Font& font, const char *text)
+std::pair<std::int64_t, const char *> fit_text_line(const Font& font, std::int64_t max_width, const char *text)
 {
-    int width = 0;
+    std::int64_t width = 0;
+    std::pair<std::int64_t, const char *> last_break{0, nullptr};
     char prev_ch = 0;
-    for (auto p = text; *p && *p != '\n'; ++p)
+    auto p = text;
+    for (; *p && *p != '\n'; ++p)
     {
         auto ch = *p;
+        if (ch == ' ')
+            last_break = {width, p};
+        auto new_width = width;
         if (prev_ch)
-            width += font.kerning.at(prev_ch).at(ch);
-        width += font.chars.at(ch).advance_x;
+            new_width += font.kerning.at(prev_ch).at(ch);
+        new_width += font.chars.at(ch).advance_x;
+        if (new_width > max_width)
+            return last_break.second ? last_break : std::make_pair(width, p);
+
+        width = new_width;
         prev_ch = ch;
     }
-    return width;
+    return {width, p};
 }
 
-std::int64_t newline_count(const char *text)
+std::int64_t newline_count(const Font& font, std::int64_t max_width, const char *text)
 {
-    int n = 0;
-    for (auto p = text; *p; ++p)
-        if (*p == '\n')
-            ++n;
+    std::int64_t n = 0;
+    auto line = fit_text_line(font, max_width, text);
+    while (*line.second)
+    {
+        ++n;
+        if (*line.second == '\n' || *line.second == ' ')
+            ++line.second;
+        line = fit_text_line(font, max_width, line.second);
+    }
     return n;
+}
+
+void push_glyph(const Font& font, const FontGlyph& glyph, GLfloat x, GLfloat y, std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a)
+{
+    std::array<GLfloat, 12> vs{{
+            x, y - glyph.img_height,
+            x + glyph.img_width, y - glyph.img_height,
+            x + glyph.img_width, y,
+            x, y - glyph.img_height,
+            x + glyph.img_width, y,
+            x, y,
+        }};
+    std::array<GLfloat, 12> tc{{
+            GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y + glyph.img_height) / font.texture_height,
+            GLfloat(glyph.img_x + glyph.img_width) / font.texture_width, GLfloat(glyph.img_y + glyph.img_height) / font.texture_height,
+            GLfloat(glyph.img_x + glyph.img_width) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
+            GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y + glyph.img_height) / font.texture_height,
+            GLfloat(glyph.img_x + glyph.img_width) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
+            GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
+        }};
+    std::array<GLfloat, 4> color{{c_r / 255.0f, c_g / 255.0f, c_b / 255.0f, c_a / 255.0f}};
+
+    ::state->font_vertices.insert(::state->font_vertices.end(), vs.begin(), vs.end());
+    ::state->font_coords.insert(::state->font_coords.end(), tc.begin(), tc.end());
+    for (int i = 0; i < 6; ++i)
+        ::state->font_colors.insert(end(::state->font_colors), begin(color), end(color));
+}
+
+std::int64_t push_char(const Font& font, char ch, std::int64_t pen_x, std::int64_t y, std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a)
+{
+    auto& char_ = font.chars.at(ch);
+    auto glyph_x = pen_x + char_.bearing_x;
+    auto glyph_x_tr = glyph_x / font.precision;
+    auto glyph = char_.glyphs[glyph_x % font.precision];
+    auto bearing_y = char_.bearing_y / font.precision;
+    push_glyph(font, glyph, glyph_x_tr, y + bearing_y, c_r, c_g, c_b, c_a);
+    return char_.advance_x;
 }
 
 }
@@ -785,72 +836,43 @@ std::int64_t text(
     x *= state->display_scale; y *= state->display_scale;
     width *= state->display_scale; height *= state->display_scale;
     auto& font = ::state->fonts.at(font_id);
-    auto calc_pen_x = [&](const char *text)
+    auto calc_pen_x = [&](std::int64_t line_width)
                           {
                               if (anchor > 0)
-                                  return (x + width) * font.precision - text_line_width(font, text);
+                                  return (x + width) * font.precision - line_width;
                               else if (anchor == 0)
-                                  return (x + width / 2) * font.precision - text_line_width(font, text) / 2;
+                                  return (x + width / 2) * font.precision - line_width / 2;
                               return x * font.precision;
                           };
-    auto array_offset = ::state->font_vertices.size() / 2;
-    auto pen_x = calc_pen_x(text);
 
     switch (vanchor)
     {
-    case VA_BOTTOM: y += newline_count(text) * font.height  - font.descender; break;
-    case VA_CENTER: y += height / 2 + newline_count(text) * font.height / 2 - font.center; break;
-    case VA_BASELINE_CENTER: y += height / 2 + newline_count(text) * font.height / 2 - font.baseline_center; break;
+    case VA_BOTTOM: y += newline_count(font, width * font.precision, text) * font.height  - font.descender; break;
+    case VA_CENTER: y += height / 2 + newline_count(font, width * font.precision, text) * font.height / 2 - font.center; break;
+    case VA_BASELINE_CENTER: y += height / 2 + newline_count(font, width * font.precision, text) * font.height / 2 - font.baseline_center; break;
     case VA_TOP: y += height - font.ascender; break;
-    case VA_BASELINE: y += newline_count(text) * font.height;
+    case VA_BASELINE: y += newline_count(font, width * font.precision, text) * font.height;
     default:;
     }
 
-    char prev_ch = 0;
-    for (; *text; ++text)
+    auto array_offset = ::state->font_vertices.size() / 2;
+    while (*text)
     {
-        auto ch = *text;
-        if (ch == '\n')
+        auto line = fit_text_line(font, width * font.precision, text);
+        auto pen_x = calc_pen_x(line.first);
+        char prev_ch = 0;
+        for (; text < line.second; ++text)
         {
-            prev_ch = 0;
-            pen_x = calc_pen_x(text + 1);
-            y -= font.height;
-            continue;
+            auto ch = *text;
+            if (prev_ch)
+                pen_x += font.kerning.at(prev_ch).at(ch);
+
+            pen_x += push_char(font, ch, pen_x, y, c_r, c_g, c_b, c_a);
+            prev_ch = ch;
         }
-        if (prev_ch)
-            pen_x += font.kerning.at(prev_ch).at(ch);
-
-        auto& char_ = font.chars.at(ch);
-        auto bearing_x = char_.bearing_x;
-        auto glyph_x = pen_x + bearing_x;
-        auto glyph_x_tr = glyph_x / font.precision;
-        auto glyph = font.chars.at(ch).glyphs[glyph_x % font.precision];
-        auto bearing_y = char_.bearing_y / font.precision;
-        std::array<GLfloat, 12> vs{{
-            GLfloat(glyph_x_tr), GLfloat(y + bearing_y - glyph.img_height),
-            GLfloat(glyph_x_tr + glyph.img_width), GLfloat(y + bearing_y - glyph.img_height),
-            GLfloat(glyph_x_tr + glyph.img_width), GLfloat(y + bearing_y),
-            GLfloat(glyph_x_tr), GLfloat(y + bearing_y - glyph.img_height),
-            GLfloat(glyph_x_tr + glyph.img_width), GLfloat(y + bearing_y),
-            GLfloat(glyph_x_tr), GLfloat(y + bearing_y),
-        }};
-        std::array<GLfloat, 12> tc{{
-            GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y + glyph.img_height) / font.texture_height,
-            GLfloat(glyph.img_x + glyph.img_width) / font.texture_width, GLfloat(glyph.img_y + glyph.img_height) / font.texture_height,
-            GLfloat(glyph.img_x + glyph.img_width) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
-            GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y + glyph.img_height) / font.texture_height,
-            GLfloat(glyph.img_x + glyph.img_width) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
-            GLfloat(glyph.img_x) / font.texture_width, GLfloat(glyph.img_y) / font.texture_height,
-        }};
-        std::array<GLfloat, 4> color{{c_r / 255.0f, c_g / 255.0f, c_b / 255.0f, c_a / 255.0f}};
-
-        ::state->font_vertices.insert(::state->font_vertices.end(), vs.begin(), vs.end());
-        ::state->font_coords.insert(::state->font_coords.end(), tc.begin(), tc.end());
-        for (int i = 0; i < 6; ++i)
-            ::state->font_colors.insert(end(::state->font_colors), begin(color), end(color));
-
-        pen_x += char_.advance_x;
-        prev_ch = ch;
+        if (*text == '\n' || *text == ' ')
+            ++text;
+        y -= font.height;
     }
     ::state->font_draw_calls.emplace_back(array_offset, ::state->font_vertices.size() / 2 - array_offset, font.texture);
     return 0;

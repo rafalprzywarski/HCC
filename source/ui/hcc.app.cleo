@@ -223,7 +223,7 @@
 
 (def text-ui
   [[:label {:font :tiny
-            :text "LEFT-BOTTOM\nwith\n\nmultiple lines"
+            :text "LEFT-BOTTOM\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 101]
             :extents [260 90]
             :text-color :black
@@ -232,7 +232,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "LEFT-BASELINE\nwith\n\nmultiple lines"
+            :text "LEFT-BASELINE\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 10]
             :extents [260 90]
             :text-color :black
@@ -241,7 +241,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "LEFT-BASELINE-CENTER\nwith\n\nmultiple lines"
+            :text "LEFT-BASELINE-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 192]
             :extents [260 90]
             :text-color :black
@@ -250,7 +250,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "LEFT-CENTER\nwith\n\nmultiple lines"
+            :text "LEFT-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 283]
             :extents [260 90]
             :text-color :black
@@ -259,7 +259,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "LEFT-TOP\nwith\n\nmultiple lines"
+            :text "LEFT-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 374]
             :extents [260 90]
             :text-color :black
@@ -269,7 +269,7 @@
             :color :secondary}]
 
    [:label {:font :tiny
-            :text "CENTER-BOTTOM\nwith\n\nmultiple lines"
+            :text "CENTER-BOTTOM\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [270 101]
             :extents [260 90]
             :text-color :black
@@ -278,7 +278,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "CENTER-BASELINE\nwith\n\nmultiple lines"
+            :text "CENTER-BASELINE\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [270 10]
             :extents [260 90]
             :text-color :black
@@ -287,7 +287,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "CENTER-BASELINE-CENTER\nwith\n\nmultiple lines"
+            :text "CENTER-BASELINE-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [270 192]
             :extents [260 90]
             :text-color :black
@@ -296,7 +296,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "CENTER-CENTER\nwith\n\nmultiple lines"
+            :text "CENTER-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [270 283]
             :extents [260 90]
             :text-color :black
@@ -305,7 +305,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "CENTER-TOP\nwith\n\nmultiple lines"
+            :text "CENTER-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [270 374]
             :extents [260 90]
             :text-color :black
@@ -315,7 +315,7 @@
             :color :secondary}]
 
    [:label {:font :tiny
-            :text "RIGHT-BOTTOM\nwith\n\nmultiple lines"
+            :text "RIGHT-BOTTOM\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [531 101]
             :extents [260 90]
             :text-color :black
@@ -324,7 +324,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "RIGHT-BASELINE\nwith\n\nmultiple lines"
+            :text "RIGHT-BASELINE\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [531 10]
             :extents [260 90]
             :text-color :black
@@ -333,7 +333,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "RIGHT-BASELINE-CENTER\nwith\n\nmultiple lines"
+            :text "RIGHT-BASELINE-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [531 192]
             :extents [260 90]
             :text-color :black
@@ -342,7 +342,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "RIGHT-CENTER\nwith\n\nmultiple lines"
+            :text "RIGHT-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [531 283]
             :extents [260 90]
             :text-color :black
@@ -351,7 +351,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "RIGHT-TOP\nwith\n\nmultiple lines"
+            :text "RIGHT-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [531 374]
             :extents [260 90]
             :text-color :black
