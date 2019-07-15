@@ -246,8 +246,8 @@ struct RasterizedFont
     int precision{};
     int capital_ascender{};
     FontImage image;
-    std::unordered_map<char, std::unordered_map<char, int>> kerning;
-    std::unordered_map<char, FontChar> chars;
+    std::unordered_map<std::uint32_t, std::unordered_map<std::uint32_t, int>> kerning;
+    std::unordered_map<std::uint32_t, FontChar> chars;
 };
 
 struct Font
@@ -256,8 +256,8 @@ struct Font
     int ascender{}, descender{}, height{}, center{}, baseline_center{};
     int texture_width{}, texture_height{};
     GLuint texture;
-    std::unordered_map<char, std::unordered_map<char, int>> kerning;
-    std::unordered_map<char, FontChar> chars;
+    std::unordered_map<std::uint32_t, std::unordered_map<std::uint32_t, int>> kerning;
+    std::unordered_map<std::uint32_t, FontChar> chars;
 };
 
 struct Image
@@ -504,7 +504,7 @@ void blit(FontImage& dst, unsigned dx, unsigned dy, const FontImage& src)
         std::copy_n(src.alpha.data() + (y - dy) * src.width, std::min(src.width, dst.width - dx), dst.alpha.begin() + dx + y * dst.width);
 }
 
-RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned precision)
+RasterizedFont rasterize_font(FT_Face face, const std::vector<std::uint32_t>& chars, unsigned precision)
 {
     RasterizedFont font;
     font.precision = precision;
@@ -570,7 +570,7 @@ RasterizedFont rasterize_font(FT_Face face, const std::string& chars, unsigned p
     return font;
 }
 
-Font generate_font(FT_Face face, const std::string& chars, unsigned precision)
+Font generate_font(FT_Face face, const std::vector<std::uint32_t>& chars, unsigned precision)
 {
     auto rf = rasterize_font(face, chars, precision);
     Font f;
@@ -592,28 +592,47 @@ Font generate_font(FT_Face face, const std::string& chars, unsigned precision)
     return f;
 }
 
+std::pair<std::uint32_t, std::int64_t> decode_utf8_char(const char *p)
+{
+    const std::pair<std::uint32_t, std::int64_t> ERROR{0xffffffff, 1};
+    if ((*p & 0x80) == 0)
+        return {*p, 1};
+    if ((*p & 0x40) == 0 || (p[1] & 0x80) == 0)
+        return ERROR;
+    if ((*p & 0x20) == 0)
+        return {(p[1] & std::uint32_t(0x3f)) | ((p[0] & std::uint32_t(0x1f)) << 6), 2};
+    if ((p[2] & 0x80) == 0)
+        return ERROR;
+    if ((*p & 0x10) == 0)
+        return {(p[2] & std::uint32_t(0x3f)) | ((p[1] & std::uint32_t(0x3f)) << 6) | ((p[0] & std::uint32_t(0xf)) << 12), 3};
+    if ((*p & 8) == 1 || (p[3] & 0x80) == 0)
+        return ERROR;
+    return {(p[3] & std::uint32_t(0x3f)) | ((p[2] & std::uint32_t(0x3f)) << 6) | ((p[1] & std::uint32_t(0x3f)) << 12) | ((p[0] & std::uint32_t(7)) << 18), 4};
+}
+
 std::pair<std::int64_t, const char *> fit_text_line(const Font& font, std::int64_t max_width, const char *text)
 {
     std::int64_t width = 0;
     std::pair<std::int64_t, const char *> last_break{0, nullptr};
-    char prev_ch = 0;
+    std::uint32_t prev_ch = 0;
     auto p = text;
-    for (; *p && *p != '\n'; ++p)
+    while (*p && *p != '\n')
     {
-        auto ch = *p;
-        if (font.chars.count(ch) == 0)
-            ch = '?';
-        if (ch == ' ')
+        auto ch = decode_utf8_char(p);
+        if (font.chars.count(ch.first) == 0)
+            ch.first = '?';
+        if (ch.first == ' ')
             last_break = {width, p};
         auto new_width = width;
         if (prev_ch)
-            new_width += font.kerning.at(prev_ch).at(ch);
-        new_width += font.chars.at(ch).advance_x;
+            new_width += font.kerning.at(prev_ch).at(ch.first);
+        new_width += font.chars.at(ch.first).advance_x;
         if (new_width > max_width)
             return last_break.second ? last_break : std::make_pair(width, p);
 
         width = new_width;
-        prev_ch = ch;
+        prev_ch = ch.first;
+        p += ch.second;
     }
     return {width, p};
 }
@@ -658,7 +677,7 @@ void push_glyph(const Font& font, const FontGlyph& glyph, GLfloat x, GLfloat y, 
         ::state->font_colors.insert(end(::state->font_colors), begin(color), end(color));
 }
 
-std::int64_t push_char(const Font& font, char ch, std::int64_t pen_x, std::int64_t y, std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a)
+std::int64_t push_char(const Font& font, std::uint32_t ch, std::int64_t pen_x, std::int64_t y, std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a)
 {
     auto& char_ = font.chars.at(ch);
     auto glyph_x = pen_x + char_.bearing_x;
@@ -818,9 +837,12 @@ std::int64_t load_font(const char *filename, std::int64_t size)
     FT_New_Face(::state->freetype, filename, 0, &fontface);
     FT_Set_Char_Size(fontface, 0, size * PRECISION * state->display_scale * 64, 131, 142);
 
-    std::string charset;
-    for (char c = 32; c < 127; ++c)
-        charset += c;
+    std::vector<std::uint32_t> charset;
+    for (std::uint32_t c = 32; c < 127; ++c)
+        charset.push_back(c);
+    charset.push_back(0x00d7);
+    charset.push_back(0x00be);
+    charset.push_back(0x2260);
     ::state->fonts.push_back(generate_font(fontface, charset, PRECISION));
 
     FT_Done_Face(fontface);
@@ -862,17 +884,18 @@ std::int64_t text(
     {
         auto line = fit_text_line(font, width * font.precision, text);
         auto pen_x = calc_pen_x(line.first);
-        char prev_ch = 0;
-        for (; text < line.second; ++text)
+        std::uint32_t prev_ch = 0;
+        while (text < line.second)
         {
-            auto ch = *text;
-            if (font.chars.count(ch) == 0)
-                ch = '?';
+            auto ch = decode_utf8_char(text);
+            if (font.chars.count(ch.first) == 0)
+                ch.first = '?';
             if (prev_ch)
-                pen_x += font.kerning.at(prev_ch).at(ch);
+                pen_x += font.kerning.at(prev_ch).at(ch.first);
 
-            pen_x += push_char(font, ch, pen_x, y, c_r, c_g, c_b, c_a);
-            prev_ch = ch;
+            pen_x += push_char(font, ch.first, pen_x, y, c_r, c_g, c_b, c_a);
+            prev_ch = ch.first;
+            text += ch.second;
         }
         if (*text == '\n' || *text == ' ')
             ++text;

@@ -351,7 +351,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "RIGHT-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :text "RIGHT-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks 2 × 5 ≠ ¾"
             :origin [531 374]
             :extents [260 90]
             :text-color :black
