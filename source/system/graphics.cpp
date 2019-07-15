@@ -601,6 +601,8 @@ std::pair<std::int64_t, const char *> fit_text_line(const Font& font, std::int64
     for (; *p && *p != '\n'; ++p)
     {
         auto ch = *p;
+        if (font.chars.count(ch) == 0)
+            ch = '?';
         if (ch == ' ')
             last_break = {width, p};
         auto new_width = width;
@@ -864,6 +866,8 @@ std::int64_t text(
         for (; text < line.second; ++text)
         {
             auto ch = *text;
+            if (font.chars.count(ch) == 0)
+                ch = '?';
             if (prev_ch)
                 pen_x += font.kerning.at(prev_ch).at(ch);
 
