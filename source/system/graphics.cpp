@@ -632,7 +632,7 @@ std::pair<std::int64_t, const char *> fit_text_line(const Font& font, std::int64
         if (prev_ch)
             new_width += font.kerning.at(prev_ch).at(ch.first);
         new_width += font.chars.at(ch.first).advance_x;
-        if (new_width > max_width)
+        if (new_width > max_width && width > 0)
             return last_break.second ? last_break : std::make_pair(width, p);
 
         width = new_width;

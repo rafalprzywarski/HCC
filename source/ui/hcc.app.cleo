@@ -96,7 +96,7 @@
    [:label {:font :big
             :text "DEVICE CONTROL CENTER             71286"
             :origin [30 15]
-            :extents [10 10]
+            :extents [600 10]
             :text-color :primary
             :color :black}]
    [:label {:font :tiny
