@@ -223,7 +223,7 @@
 
 (def text-ui
   [[:label {:font :tiny
-            :text "LEFT-BOTTOM\nwith\nmultiple lines and \ue1ff\ue200\ue300automatic\ue400 line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :text [{:text "LEFT-BOTTOM\n" :text-align :center} "with\nmultiple lines and " {:text-color :highlight, :text "automatic"} " line breaks breaks breaks breaks breaks breaks breaks breaks"]
             :origin [9 101]
             :extents [195 90]
             :text-color :black
@@ -232,7 +232,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "LEFT-BASELINE\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :text [{:text "LEFT-" :text-align :center} {:text "BASELINE" :text-color :primary} "\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"]
             :origin [9 10]
             :extents [195 90]
             :text-color :black
@@ -370,7 +370,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "JUSTIFY-BASELINE\nwith\nmultiple lines and \ue17f\ue27f\ue300automatic\ue400 line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :text ["JUSTIFY-BASELINE\nwith\nmultiple lines and " {:text-color :primary :text "automatic"} " line breaks breaks breaks breaks breaks breaks breaks breaks"]
             :origin [597 10]
             :extents [195 90]
             :text-color :black

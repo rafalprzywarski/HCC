@@ -10,6 +10,10 @@
 (defn v2+ [[x1 y1] [x2 y2]] [(+ x1 x2) (+ y1 y2)])
 
 
+(defn- map-text-align [a]
+  ({:center 1, :right 2, :justify 3} a 0))
+
+
 (defn align-text [text align valign margin [origin-x origin-y] [width height]]
   (let [margin (or margin 0)]
     {:text-align (#{:center :right :justify} align :left)
@@ -31,6 +35,35 @@
          primitives)))
 
 
+(defn- wrap-set-rgba [[r g b a] text]
+  (str (char-utf8 (+ 0xe100 r)) (char-utf8 (+ 0xe200 g)) (char-utf8 (+ 0xe300 b)) (char-utf8 (+ 0xe000 (or a 255))) text (char-utf8 0xe400)))
+
+
+(defn- wrap-set-align [text-align text]
+  (str (char-utf8 (+ 0xe500 (map-text-align text-align))) text (char-utf8 0xe400)))
+
+
+(defn- serialize-text-fragment [palette frag]
+  (cond
+    (string? frag) frag
+    (map? frag) (let [{:keys [text text-color text-align]} frag
+                      text (if text-color
+                             (wrap-set-rgba (palette text-color) text)
+                             text)
+                      text (if text-align
+                             (wrap-set-align text-align text)
+                             text)]
+                  text)
+    :else (throw (IllegalArgument. (str "Invalid text fragment: " frag)))))
+
+
+(defn serialize-text [palette text]
+  (cond
+    (string? text) text
+    (vector? text) (apply str (map (fn [frag] (serialize-text-fragment palette frag)) text))
+    :else (throw (IllegalArgument. (str "Invalid text: " text)))))
+
+
 (defmethod render-elem :label
   [palette
    [type {:keys [id origin extents color font text text-color text-align text-valign margin]}]
@@ -38,7 +71,7 @@
   (let [color (if (and color id (= id pressed-id)) :highlight color)
         text (merge {:type :text
                      :font font
-                     :text text
+                     :text (serialize-text palette text)
                      :text-color (palette text-color)}
                     (align-text text text-align text-valign margin origin extents))]
     (if color
@@ -206,7 +239,7 @@
               text
               origin-x origin-y
               width height
-              ({:center 0, :right 1, :justify -2} text-align -1) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-valign 0)
+              (map-text-align text-align) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-valign 0)
               tr tg tb (or ta 255))))
 
 
