@@ -225,7 +225,7 @@
   [[:label {:font :tiny
             :text "LEFT-BOTTOM\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 101]
-            :extents [260 90]
+            :extents [195 90]
             :text-color :black
             :text-align :left
             :text-valign :bottom
@@ -234,7 +234,7 @@
    [:label {:font :tiny
             :text "LEFT-BASELINE\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 10]
-            :extents [260 90]
+            :extents [195 90]
             :text-color :black
             :text-align :left
             :text-valign :baseline
@@ -243,7 +243,7 @@
    [:label {:font :tiny
             :text "LEFT-BASELINE-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 192]
-            :extents [260 90]
+            :extents [195 90]
             :text-color :black
             :text-align :left
             :text-valign :baseline-center
@@ -252,7 +252,7 @@
    [:label {:font :tiny
             :text "LEFT-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 283]
-            :extents [260 90]
+            :extents [195 90]
             :text-color :black
             :text-align :left
             :text-valign :center
@@ -261,7 +261,7 @@
    [:label {:font :tiny
             :text "LEFT-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 374]
-            :extents [260 90]
+            :extents [195 90]
             :text-color :black
             :text-align :left
             :text-valign :top
@@ -270,8 +270,8 @@
 
    [:label {:font :tiny
             :text "CENTER-BOTTOM\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
-            :origin [270 101]
-            :extents [260 90]
+            :origin [205 101]
+            :extents [195 90]
             :text-color :black
             :text-align :center
             :text-valign :bottom
@@ -279,8 +279,8 @@
             :color :secondary}]
    [:label {:font :tiny
             :text "CENTER-BASELINE\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
-            :origin [270 10]
-            :extents [260 90]
+            :origin [205 10]
+            :extents [195 90]
             :text-color :black
             :text-align :center
             :text-valign :baseline
@@ -288,8 +288,8 @@
             :color :secondary}]
    [:label {:font :tiny
             :text "CENTER-BASELINE-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
-            :origin [270 192]
-            :extents [260 90]
+            :origin [205 192]
+            :extents [195 90]
             :text-color :black
             :text-align :center
             :text-valign :baseline-center
@@ -297,8 +297,8 @@
             :color :secondary}]
    [:label {:font :tiny
             :text "CENTER-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
-            :origin [270 283]
-            :extents [260 90]
+            :origin [205 283]
+            :extents [195 90]
             :text-color :black
             :text-align :center
             :text-valign :center
@@ -306,8 +306,8 @@
             :color :secondary}]
    [:label {:font :tiny
             :text "CENTER-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
-            :origin [270 374]
-            :extents [260 90]
+            :origin [205 374]
+            :extents [195 90]
             :text-color :black
             :text-align :center
             :text-valign :top
@@ -316,8 +316,8 @@
 
    [:label {:font :tiny
             :text "RIGHT-BOTTOM\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
-            :origin [531 101]
-            :extents [260 90]
+            :origin [401 101]
+            :extents [195 90]
             :text-color :black
             :text-align :right
             :text-valign :bottom
@@ -325,8 +325,8 @@
             :color :secondary}]
    [:label {:font :tiny
             :text "RIGHT-BASELINE\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
-            :origin [531 10]
-            :extents [260 90]
+            :origin [401 10]
+            :extents [195 90]
             :text-color :black
             :text-align :right
             :text-valign :baseline
@@ -334,8 +334,8 @@
             :color :secondary}]
    [:label {:font :tiny
             :text "RIGHT-BASELINE-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
-            :origin [531 192]
-            :extents [260 90]
+            :origin [401 192]
+            :extents [195 90]
             :text-color :black
             :text-align :right
             :text-valign :baseline-center
@@ -343,19 +343,65 @@
             :color :secondary}]
    [:label {:font :tiny
             :text "RIGHT-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
-            :origin [531 283]
-            :extents [260 90]
+            :origin [401 283]
+            :extents [195 90]
             :text-color :black
             :text-align :right
             :text-valign :center
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "RIGHT-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks 2 × 5 ≠ ¾"
-            :origin [531 374]
-            :extents [260 90]
+            :text "RIGHT-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks breaks 2 × 5 ≠ ¾"
+            :origin [401 374]
+            :extents [195 90]
             :text-color :black
             :text-align :right
+            :text-valign :top
+            :margin 2
+            :color :secondary}]
+
+   [:label {:font :tiny
+            :text "JUSTIFY-BOTTOM\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :origin [597 101]
+            :extents [195 90]
+            :text-color :black
+            :text-align :justify
+            :text-valign :bottom
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "JUSTIFY-BASELINE\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :origin [597 10]
+            :extents [195 90]
+            :text-color :black
+            :text-align :justify
+            :text-valign :baseline
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "JUSTIFY-BASELINE-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :origin [597 192]
+            :extents [195 90]
+            :text-color :black
+            :text-align :justify
+            :text-valign :baseline-center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "JUSTIFY-CENTER\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :origin [597 283]
+            :extents [195 90]
+            :text-color :black
+            :text-align :justify
+            :text-valign :center
+            :margin 2
+            :color :secondary}]
+   [:label {:font :tiny
+            :text "JUSTIFY-TOP\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks breaks 2 × 5 ≠ ¾"
+            :origin [597 374]
+            :extents [195 90]
+            :text-color :black
+            :text-align :justify
             :text-valign :top
             :margin 2
             :color :secondary}]])
@@ -480,53 +526,13 @@
              :text-color :tertiary
              :text-align :left
              :text-valign :top}]
-    [:label {:text "9278536Y FB238457 GB234957 6N3457N3 4MKFRT35 87UHBTNS87EW4 FQW37865NG8 Q734TVN39085T0V29"
+    [:label {:text "9278536Y FB238457 GB234957 6N3457N3 4MKFRT35 87UHBTNS87EW4 FQW37865NG8 Q734TVN39085T0V29 2358976VT238456VN20389 7546VN39 4562Q87T98RF7S Y34W95GQ039 847 65NQG08234756TNG0Q38476T5 AW 498 5R QG30C24526QO GH9465YQV34P 9T2QPVN3495T6WQ9A N38756VNQ3478 56YBWN934 5TYBWN9387 3489756TYG2385T2 3856TY3458YTGW VBN893 7456TY 02NV37456YN20 VB3784965YGN028946Y5GN01234J 89473 56FY20J37956702G9367J2 468723Y8Y20934586GH29 834576NH298357N61B83745NG1934 756GN39 23458F5TH239 485TF123 48GB525189G345912VBQN04 56Y138456TF10982 34675TB01F782465G12837465"
              :font :small
-             :origin [(+ left-bar-width 50) 235]
-             :extents [400 30]
+             :origin [(+ left-bar-width 50) 55]
+             :extents [630 210]
              :margin 2
              :text-color :primary
-             :text-align :left
-             :text-valign :top}]
-    [:label {:text "2358976VT238456VN20389 7546VN39 4562Q87T98RF7S Y34W95GQ039 847 65NQG08234756TNG0Q38476T5"
-             :font :small
-             :origin [(+ left-bar-width 50) 210]
-             :extents [400 30]
-             :margin 2
-             :text-color :primary
-             :text-align :left
-             :text-valign :top}]
-    [:label {:text "AW 498 5R QG30C24526QO GH9465YQV34P 9T2QPVN3495T6WQ9A N38756VNQ3478 56YBWN934 5TYBWN9387"
-             :font :small
-             :origin [(+ left-bar-width 50) 185]
-             :extents [400 30]
-             :margin 2
-             :text-color :primary
-             :text-align :left
-             :text-valign :top}]
-    [:label {:text "3489756TYG2385T2 3856TY3458YTGW VBN893  7456TY 02NV37456YN20 VB3784965YGN028946Y5GN01234"
-             :font :small
-             :origin [(+ left-bar-width 50) 160]
-             :extents [400 30]
-             :margin 2
-             :text-color :primary
-             :text-align :left
-             :text-valign :top}]
-    [:label {:text "89473 56FY20J37956702G9367J2 468723Y8Y20934586GH29 834576NH298357N61B83745NG1934 756GN39"
-             :font :small
-             :origin [(+ left-bar-width 50) 135]
-             :extents [400 30]
-             :margin 2
-             :text-color :primary
-             :text-align :left
-             :text-valign :top}]
-    [:label {:text "23458F5TH239 485TF123 48GB525189G345912VBQN04 56Y138456TF10982 34675TB01F782465G12837465"
-             :font :small
-             :origin [(+ left-bar-width 50) 110]
-             :extents [400 30]
-             :margin 2
-             :text-color :primary
-             :text-align :left
+             :text-align :justify
              :text-valign :top}]
     [:label {:text "SECURITY SCAN ANALYSIS 43.267"
              :font :medium

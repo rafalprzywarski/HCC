@@ -12,8 +12,8 @@
 
 (defn align-text [text align valign margin [origin-x origin-y] [width height]]
   (let [margin (or margin 0)]
-    {:text-anchor (#{:center :right} align :left)
-     :text-vanchor (#{:bottom :center :baseline-center :top} valign :baseline)
+    {:text-align (#{:center :right :justify} align :left)
+     :text-valign (#{:bottom :center :baseline-center :top} valign :baseline)
      :origin [(+ origin-x margin) (+ origin-y margin)]
      :extents [(- width (* 2 margin)) (- height (* 2 margin))]}))
 
@@ -200,13 +200,13 @@
   [{[origin-x origin-y] :origin
     [width height] :extents
     [tr tg tb ta] :text-color
-    :keys [font text text-anchor text-vanchor]}]
+    :keys [font text text-align text-valign]}]
   (if @fonts
     (si/text! (@fonts font)
               text
               origin-x origin-y
               width height
-              ({:center 0, :right 1} text-anchor -1) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-vanchor 0)
+              ({:center 0, :right 1, :justify -2} text-align -1) ({:bottom -1, :center 1, :baseline-center 2, :top 3} text-valign 0)
               tr tg tb (or ta 255))))
 
 

@@ -29,6 +29,11 @@ constexpr int VA_CENTER = 1;
 constexpr int VA_BASELINE_CENTER = 2;
 constexpr int VA_TOP = 3;
 
+constexpr int V_JUSTIFY = -2;
+constexpr int V_LEFT = -1;
+constexpr int V_CENTER = 0;
+constexpr int V_RIGHT = 1;
+
 #define HCC_GRAPHICS_TO_LINEAR \
 "vec3 toLinear(vec3 color)\n" \
 "{\n" \
@@ -847,6 +852,8 @@ std::int64_t load_font(const char *filename, std::int64_t size)
 
     FT_Done_Face(fontface);
 
+    std::cout << "loaded " << filename << " size: " << size << std::endl;
+
     return ::state->fonts.size() - 1;
 }
 
@@ -854,7 +861,7 @@ std::int64_t text(
     std::int64_t font_id, const char *text,
     std::int64_t x, std::int64_t y,
     std::int64_t width, std::int64_t height,
-    std::int64_t anchor, std::int64_t vanchor,
+    std::int64_t align, std::int64_t valign,
     std::int64_t c_r, std::int64_t c_g, std::int64_t c_b, std::int64_t c_a)
 {
     x *= state->display_scale; y *= state->display_scale;
@@ -862,14 +869,15 @@ std::int64_t text(
     auto& font = ::state->fonts.at(font_id);
     auto calc_pen_x = [&](std::int64_t line_width)
                           {
-                              if (anchor > 0)
-                                  return (x + width) * font.precision - line_width;
-                              else if (anchor == 0)
-                                  return (x + width / 2) * font.precision - line_width / 2;
-                              return x * font.precision;
+                              switch (align)
+                              {
+                              case V_RIGHT: return (x + width) * font.precision - line_width;
+                              case V_CENTER: return (x + width / 2) * font.precision - line_width / 2;
+                              default: return x * font.precision;
+                              }
                           };
 
-    switch (vanchor)
+    switch (valign)
     {
     case VA_BOTTOM: y += newline_count(font, width * font.precision, text) * font.height  - font.descender; break;
     case VA_CENTER: y += height / 2 + newline_count(font, width * font.precision, text) * font.height / 2 - font.center; break;
@@ -884,6 +892,9 @@ std::int64_t text(
     {
         auto line = fit_text_line(font, width * font.precision, text);
         auto pen_x = calc_pen_x(line.first);
+        auto extra_width = width * font.precision - line.first;
+        auto ws_count = std::count(text, line.second, ' ');
+        auto ws_n = 0;
         std::uint32_t prev_ch = 0;
         while (text < line.second)
         {
@@ -894,6 +905,11 @@ std::int64_t text(
                 pen_x += font.kerning.at(prev_ch).at(ch.first);
 
             pen_x += push_char(font, ch.first, pen_x, y, c_r, c_g, c_b, c_a);
+            if (align == V_JUSTIFY && ch.first == ' ' && *line.second == ' ')
+            {
+                pen_x += extra_width * (ws_n + 1) / ws_count - extra_width * ws_n / ws_count;
+                ++ws_n;
+            }
             prev_ch = ch.first;
             text += ch.second;
         }
