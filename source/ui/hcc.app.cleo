@@ -223,7 +223,7 @@
 
 (def text-ui
   [[:label {:font :tiny
-            :text "LEFT-BOTTOM\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :text "LEFT-BOTTOM\nwith\nmultiple lines and \ue1ff\ue200\ue300automatic\ue400 line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [9 101]
             :extents [195 90]
             :text-color :black
@@ -370,7 +370,7 @@
             :margin 2
             :color :secondary}]
    [:label {:font :tiny
-            :text "JUSTIFY-BASELINE\nwith\nmultiple lines and automatic line breaks breaks breaks breaks breaks breaks breaks breaks"
+            :text "JUSTIFY-BASELINE\nwith\nmultiple lines and \ue17f\ue27f\ue300automatic\ue400 line breaks breaks breaks breaks breaks breaks breaks breaks"
             :origin [597 10]
             :extents [195 90]
             :text-color :black
@@ -526,7 +526,7 @@
              :text-color :tertiary
              :text-align :left
              :text-valign :top}]
-    [:label {:text "9278536Y FB238457 GB234957 6N3457N3 4MKFRT35 87UHBTNS87EW4 FQW37865NG8 Q734TVN39085T0V29 2358976VT238456VN20389 7546VN39 4562Q87T98RF7S Y34W95GQ039 847 65NQG08234756TNG0Q38476T5 AW 498 5R QG30C24526QO GH9465YQV34P 9T2QPVN3495T6WQ9A N38756VNQ3478 56YBWN934 5TYBWN9387 3489756TYG2385T2 3856TY3458YTGW VBN893 7456TY 02NV37456YN20 VB3784965YGN028946Y5GN01234J 89473 56FY20J37956702G9367J2 468723Y8Y20934586GH29 834576NH298357N61B83745NG1934 756GN39 23458F5TH239 485TF123 48GB525189G345912VBQN04 56Y138456TF10982 34675TB01F782465G12837465"
+    [:label {:text "\ue170\ue260\ue3709278536Y FB238457 GB234957 \ue1a2\ue290\ue3a036N3457N3 \ue180\ue250\ue3504MKFRT35 87UHBTNS87EW4 \ue170\ue260\ue370FQW37865NG8 Q734TVN39085T0V29 2358976VT238456VN20389 \ue180\ue250\ue3207546VN39 \ue1a2\ue290\ue3a04562Q87T98RF7S Y34W95GQ039 847 65NQG08234756TNG0Q38476T5 AW 498 5R QG30C24526QO GH9465YQV34P 9T2QPVN3495T6WQ9A N38756VNQ3478 56YBWN934 5TYBWN9387 3489756TYG2385T2 3856TY3458YTGW VBN893 7456TY 02NV37456YN20 VB3784965YGN028946Y5GN01234J 89473 56FY20J37956702G9367J2 468723Y8Y20934586GH29 834576NH298357N61B83745NG1934 756GN39 23458F5TH239 485TF123 48GB525189G345912VBQN04 56Y138456TF10982 34675TB01F782465G12837465"
              :font :small
              :origin [(+ left-bar-width 50) 55]
              :extents [630 210]

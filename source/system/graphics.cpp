@@ -34,6 +34,14 @@ constexpr int V_LEFT = -1;
 constexpr int V_CENTER = 0;
 constexpr int V_RIGHT = 1;
 
+constexpr std::uint32_t CC_FIRST = 0xe000;
+constexpr std::uint32_t CC_SET_ALPHA = 0xe000;
+constexpr std::uint32_t CC_SET_RED = 0xe100;
+constexpr std::uint32_t CC_SET_GREEN = 0xe200;
+constexpr std::uint32_t CC_SET_BLUE = 0xe300;
+constexpr std::uint32_t CC_RESET = 0xe400;
+constexpr std::uint32_t CC_LAST = 0xefff;
+
 #define HCC_GRAPHICS_TO_LINEAR \
 "vec3 toLinear(vec3 color)\n" \
 "{\n" \
@@ -624,6 +632,11 @@ std::pair<std::int64_t, const char *> fit_text_line(const Font& font, std::int64
     while (*p && *p != '\n')
     {
         auto ch = decode_utf8_char(p);
+        if (ch.first >= CC_FIRST && ch.first <= CC_LAST)
+        {
+            p += ch.second;
+            continue;
+        }
         if (font.chars.count(ch.first) == 0)
             ch.first = '?';
         if (ch.first == ' ')
@@ -866,6 +879,7 @@ std::int64_t text(
 {
     x *= state->display_scale; y *= state->display_scale;
     width *= state->display_scale; height *= state->display_scale;
+    const auto sc_r = c_r, sc_g = c_g, sc_b = c_b, sc_a = c_a;
     auto& font = ::state->fonts.at(font_id);
     auto calc_pen_x = [&](std::int64_t line_width)
                           {
@@ -899,6 +913,20 @@ std::int64_t text(
         while (text < line.second)
         {
             auto ch = decode_utf8_char(text);
+            if (ch.first >= CC_FIRST && ch.first <= CC_LAST)
+            {
+                text += ch.second;
+                switch (ch.first & 0xff00)
+                {
+                case CC_SET_ALPHA: c_a = ch.first & 0xff; break;
+                case CC_SET_RED: c_r = ch.first & 0xff; break;
+                case CC_SET_GREEN: c_g = ch.first & 0xff; break;
+                case CC_SET_BLUE: c_b = ch.first & 0xff; break;
+                case CC_RESET: c_a = sc_a; c_r = sc_r; c_g= sc_g; c_b = sc_b; break;
+                }
+                continue;
+            }
+
             if (font.chars.count(ch.first) == 0)
                 ch.first = '?';
             if (prev_ch)
