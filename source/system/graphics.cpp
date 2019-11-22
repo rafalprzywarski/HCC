@@ -624,10 +624,19 @@ std::pair<std::uint32_t, std::int64_t> decode_utf8_char(const char *p)
     return {(p[3] & std::uint32_t(0x3f)) | ((p[2] & std::uint32_t(0x3f)) << 6) | ((p[1] & std::uint32_t(0x3f)) << 12) | ((p[0] & std::uint32_t(7)) << 18), 4};
 }
 
-std::pair<std::int64_t, const char *> fit_text_line(const Font& font, std::int64_t max_width, const char *text)
+
+struct TextLine
+{
+    std::int64_t width{};
+    const char *end{};
+    std::int64_t ws_count{};
+};
+
+TextLine fit_text_line(const Font& font, std::int64_t max_width, const char *text)
 {
     std::int64_t width = 0;
-    std::pair<std::int64_t, const char *> last_break{0, nullptr};
+    TextLine last_break;
+    std::int64_t ws_count = 0;
     std::uint32_t prev_ch = 0;
     auto p = text;
     while (*p && *p != '\n')
@@ -641,31 +650,33 @@ std::pair<std::int64_t, const char *> fit_text_line(const Font& font, std::int64
         if (font.chars.count(ch.first) == 0)
             ch.first = '?';
         if (ch.first == ' ')
-            last_break = {width, p};
+            last_break = {width, p, ws_count};
         auto new_width = width;
         if (prev_ch)
             new_width += font.kerning.at(prev_ch).at(ch.first);
         new_width += font.chars.at(ch.first).advance_x;
         if (new_width > max_width && width > 0)
-            return last_break.second ? last_break : std::make_pair(width, p);
+            return last_break.end ? last_break : TextLine{width, p, ws_count};
 
+        if (ch.first == ' ')
+            ++ws_count;
         width = new_width;
         prev_ch = ch.first;
         p += ch.second;
     }
-    return {width, p};
+    return {width, p, ws_count};
 }
 
 std::int64_t newline_count(const Font& font, std::int64_t max_width, const char *text)
 {
     std::int64_t n = 0;
     auto line = fit_text_line(font, max_width, text);
-    while (*line.second)
+    while (*line.end)
     {
         ++n;
-        if (*line.second == '\n' || *line.second == ' ')
-            ++line.second;
-        line = fit_text_line(font, max_width, line.second);
+        if (*line.end == '\n' || *line.end == ' ')
+            ++line.end;
+        line = fit_text_line(font, max_width, line.end);
     }
     return n;
 }
@@ -918,7 +929,7 @@ std::int64_t text(
     while (*text)
     {
         auto line = fit_text_line(font, width * font.precision, text);
-        while (text < line.second)
+        while (text < line.end)
         {
             auto ch = decode_utf8_char(text);
             if (ch.first < CC_FIRST || ch.first > CC_LAST)
@@ -927,12 +938,11 @@ std::int64_t text(
             run_modifier(ch.first);
         }
 
-        auto pen_x = calc_pen_x(line.first);
-        auto extra_width = width * font.precision - line.first;
-        auto ws_count = std::count(text, line.second, ' ');
+        auto pen_x = calc_pen_x(line.width);
+        auto extra_width = width * font.precision - line.width;
         auto ws_n = 0;
         std::uint32_t prev_ch = 0;
-        while (text < line.second)
+        while (text < line.end)
         {
             auto ch = decode_utf8_char(text);
             if (ch.first >= CC_FIRST && ch.first <= CC_LAST)
@@ -948,9 +958,9 @@ std::int64_t text(
                 pen_x += font.kerning.at(prev_ch).at(ch.first);
 
             pen_x += push_char(font, ch.first, pen_x, y, c_r, c_g, c_b, c_a);
-            if (align == V_JUSTIFY && ch.first == ' ' && *line.second == ' ')
+            if (align == V_JUSTIFY && ch.first == ' ' && *line.end == ' ')
             {
-                pen_x += extra_width * (ws_n + 1) / ws_count - extra_width * ws_n / ws_count;
+                pen_x += extra_width * (ws_n + 1) / line.ws_count - extra_width * ws_n / line.ws_count;
                 ++ws_n;
             }
             prev_ch = ch.first;
