@@ -15,3 +15,5 @@ else()
   add_library(hcc_system MODULE graphics.cpp input.cpp system.cpp)
   target_link_libraries(hcc_system brcmEGL brcmGLESv2 ${FREETYPE_LIBRARIES} ${PNG_LIBRARIES})
 endif()
+
+add_library(hcc_system_stub MODULE system_stub.cpp)
