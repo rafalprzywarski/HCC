@@ -36,11 +36,11 @@
 
 
 (defn- wrap-set-rgba [[r g b a] text]
-  (str (char-utf8 (+ 0xe100 r)) (char-utf8 (+ 0xe200 g)) (char-utf8 (+ 0xe300 b)) (char-utf8 (+ 0xe000 (or a 255))) text (char-utf8 0xe400)))
+  (str (char (+ 0xe100 r)) (char (+ 0xe200 g)) (char (+ 0xe300 b)) (char (+ 0xe000 (or a 255))) text (char 0xe400)))
 
 
 (defn- wrap-set-align [text-align text]
-  (str (char-utf8 (+ 0xe500 (map-text-align text-align))) text (char-utf8 0xe400)))
+  (str (char (+ 0xe500 (map-text-align text-align))) text (char 0xe400)))
 
 
 (defn- serialize-text-fragment [palette frag]
