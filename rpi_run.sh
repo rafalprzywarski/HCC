@@ -6,7 +6,7 @@ if [ "${RPI_ADDRESS}" == "" ]; then
   exit 1
 fi
 
-DEST_DIR=/home/pi/remote_builds/hcc
+DEST_DIR=/home/pi/remote_builds/HCC
 
 echo "synchronising..."
 ssh ${RPI_ADDRESS} "mkdir -p ${DEST_DIR}"
