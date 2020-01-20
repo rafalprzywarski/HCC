@@ -1,12 +1,11 @@
 (ns hcc.system)
 
 
-(defn gen-icfn [libname cname ret-type param-types]
-  (list `import-c-fn libname cname ret-type param-types))
-
-
 (defmacro defcfns [libname & decls]
-  `(do ~@(map (fn [decl] (list 'def (first decl) (apply gen-icfn (conj (next decl) libname)))) decls)))
+  `(do
+     ~@(map (fn [decl]
+              (list 'def (first decl) (cons 'import-c-fn (cons libname (next decl)))))
+            decls)))
 
 
 (defcfns "Release/source/system/libhcc_system.so"
@@ -33,7 +32,7 @@
 
 
 (defn has-input? []
-  (not (= (has-input*) 0)))
+  (not= (has-input*) 0))
 
 
 (defn get-event! []
