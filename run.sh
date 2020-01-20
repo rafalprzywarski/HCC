@@ -1,2 +1,2 @@
 #!/bin/bash
-cleo source/ui hcc.app
+cleo "source/ui:Release/source/system" hcc.app
