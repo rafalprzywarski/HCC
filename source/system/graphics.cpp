@@ -711,8 +711,9 @@ std::int64_t push_char(const Font& font, std::uint32_t ch, std::int64_t pen_x, s
 {
     auto& char_ = font.chars.at(ch);
     auto glyph_x = pen_x + char_.bearing_x;
-    auto glyph_x_tr = glyph_x / font.precision;
-    auto glyph = char_.glyphs[glyph_x % font.precision];
+    auto glyph_x_rem = ((glyph_x % font.precision) + font.precision) % font.precision;
+    auto glyph_x_tr = (glyph_x - glyph_x_rem) / font.precision;
+    auto glyph = char_.glyphs.at(glyph_x_rem);
     auto bearing_y = char_.bearing_y / font.precision;
     push_glyph(font, glyph, glyph_x_tr, y + bearing_y, c_r, c_g, c_b, c_a);
     return char_.advance_x;
