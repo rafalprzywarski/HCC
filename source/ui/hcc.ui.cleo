@@ -394,8 +394,11 @@
   (list 'def name (if (and (map? state-param)
                            (= (count state-param) 1)
                            (contains? state-param :keys))
-                    {::fn `(fn [~(:keys state-param) [~@(next params)]] ~body)
-                     ::state-fn `(fn state-fn [~state-param] ~(:keys state-param))}
+                    (let [state-params (mapv (fn [k]
+                                               (symbol nil (cleo.core/name k)))
+                                             (:keys state-param))]
+                      {::fn `(fn [~state-params [~@(next params)]] ~body)
+                       ::state-fn `(fn state-fn [~state-param] ~state-params)})
                     {::fn `(fn [~state-param [~@(next params)]] ~body)
                      ::state-fn `(fn [state#] state#)})))
 
