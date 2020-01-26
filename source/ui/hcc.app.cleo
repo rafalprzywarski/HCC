@@ -201,7 +201,7 @@
              :text "226-7322"
              :origin [400 150]
              :extents [200 60]
-             :vaxis 25
+             :haxis 25
              :text-color :black
              :text-align :right
              :text-valign :baseline
@@ -548,26 +548,26 @@
                            :origin [0 0]
                            :extents [16 12]
                            :center [8 6]
-                           :vaxis 8
-                           :haxis 6}
+                           :haxis 8
+                           :vaxis 6}
                           {:type :arc
                            :origin [0 -18]
                            :extents [16 12]
                            :center [8 6]
-                           :vaxis 8
-                           :haxis 6}
+                           :haxis 8
+                           :vaxis 6}
                           {:type :arc
                            :origin [0 -36]
                            :extents [16 12]
                            :center [8 6]
-                           :vaxis 8
-                           :haxis 6}
+                           :haxis 8
+                           :vaxis 6}
                           {:type :arc
                            :origin [0 -54]
                            :extents [16 12]
                            :center [8 6]
-                           :vaxis 8
-                           :haxis 6}]}]
+                           :haxis 8
+                           :vaxis 6}]}]
     [:label {:text "SIGNAL RECEIVE"
              :font :tiny
              :text-color :tertiary
@@ -699,7 +699,7 @@
                           :extents [16 40]
                           :center [16 20]
                           :radius 20
-                          :vaxis 16}
+                          :haxis 16}
                          {:type :rect
                           :origin [16 0]
                           :extents [34 40]}
@@ -708,7 +708,7 @@
                           :extents [16 40]
                           :center [0 20]
                           :radius 20
-                          :vaxis 16}
+                          :haxis 16}
                          {:type :rect
                           :origin [749 0]
                           :extents [35 40]}
@@ -721,7 +721,7 @@
                           :extents [16 40]
                           :center [16 20]
                           :radius 20
-                          :vaxis 16}
+                          :haxis 16}
                          {:type :rect
                           :origin [16 0]
                           :extents [34 40]}
@@ -730,7 +730,7 @@
                           :extents [16 40]
                           :center [0 20]
                           :radius 20
-                          :vaxis 16}
+                          :haxis 16}
                          {:type :rect
                           :origin [750 0]
                           :extents [34 40]}
@@ -793,7 +793,7 @@
                           :extents [16 40]
                           :center [16 20]
                           :radius 20
-                          :vaxis 16}
+                          :haxis 16}
                          {:type :rect
                           :origin [16 0]
                           :extents [34 40]}
@@ -802,7 +802,7 @@
                           :extents [16 40]
                           :center [0 20]
                           :radius 20
-                          :vaxis 16}
+                          :haxis 16}
                          {:type :rect
                           :origin [749 0]
                           :extents [35 40]}
@@ -815,7 +815,7 @@
                           :extents [16 40]
                           :center [16 20]
                           :radius 20
-                          :vaxis 16}
+                          :haxis 16}
                          {:type :rect
                           :origin [16 0]
                           :extents [34 40]}
@@ -824,7 +824,7 @@
                           :extents [16 40]
                           :center [0 20]
                           :radius 20
-                          :vaxis 16}
+                          :haxis 16}
                          {:type :rect
                           :origin [750 0]
                           :extents [34 40]}
